@@ -10,7 +10,7 @@ datasource db {
 model Setting {
   id          BigInt   @id
   key         String   @unique
-  value       String
+  value       String   @db.Text
   description String?
 
   @@map("settings")

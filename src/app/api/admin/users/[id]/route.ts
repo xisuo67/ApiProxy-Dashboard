@@ -1,12 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
-interface Params {
-  params: {
-    id: string;
-  };
-}
-
 async function assertAdmin() {
   const { userId } = await auth();
 
@@ -25,7 +19,13 @@ async function assertAdmin() {
   return { ok: true as const };
 }
 
-export async function PATCH(req: Request, { params }: Params) {
+function getIdFromRequest(req: Request) {
+  const url = new URL(req.url);
+  const segments = url.pathname.split('/');
+  return segments[segments.length - 1] || '';
+}
+
+export async function PATCH(req: Request) {
   const authResult = await assertAdmin();
   if (!authResult.ok) {
     return Response.json(
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: Params) {
     );
   }
 
-  const { id } = params;
+  const id = getIdFromRequest(req);
   const body = await req.json();
   const { role, isActive } = body as {
     role?: string;
@@ -64,7 +64,7 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Params) {
+export async function DELETE(req: Request) {
   const authResult = await assertAdmin();
   if (!authResult.ok) {
     return Response.json(
@@ -73,7 +73,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     );
   }
 
-  const { id } = params;
+  const id = getIdFromRequest(req);
 
   try {
     await prisma.user.delete({

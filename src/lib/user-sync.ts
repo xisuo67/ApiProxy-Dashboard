@@ -1,4 +1,4 @@
-import { currentUser } from '@clerk/nextjs/server';
+import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 export type UserRole = 'Admin' | 'User';
@@ -48,18 +48,23 @@ export async function syncAllUsersFromClerk() {
   let offset = 0;
   let totalSynced = 0;
 
+  // clerkClient 在 nextjs/server 中是一个返回 Promise<ClerkClient> 的函数
+  const client = await clerkClient();
+
   // 简单的分页全量同步，适合用户量不大的场景
   // 大量用户时建议改为基于 cursor 的增量同步
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const list = await clerkClient.users.getUserList({
+    const result = await client.users.getUserList({
       limit: pageSize,
       offset
     });
 
-    if (list.length === 0) break;
+    const users = result.data;
 
-    for (const u of list) {
+    if (!users || users.length === 0) break;
+
+    for (const u of users) {
       const email =
         u.emailAddresses[0]?.emailAddress ??
         u.primaryEmailAddress?.emailAddress ??
@@ -92,8 +97,8 @@ export async function syncAllUsersFromClerk() {
       totalSynced += 1;
     }
 
-    if (list.length < pageSize) break;
-    offset += pageSize;
+    if (users.length < pageSize) break;
+    offset += users.length;
   }
 
   return { totalSynced };

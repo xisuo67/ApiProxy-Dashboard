@@ -74,6 +74,34 @@ export default function AppSidebar() {
     // Side effects based on sidebar state changes
   }, [isOpen]);
 
+  const [localRole, setLocalRole] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.role) {
+          setLocalRole(data.role as string);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const isAdmin = localRole === 'Admin';
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (!isAdmin && (item.title === 'Account' || item.title === 'Settings')) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader>
@@ -87,7 +115,7 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarMenu>
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon ? Icons[item.icon] : Icons.logo;
               return item?.items && item?.items?.length > 0 ? (
                 <Collapsible

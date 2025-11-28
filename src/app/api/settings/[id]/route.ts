@@ -1,15 +1,15 @@
 import { deleteSetting, updateSetting } from '@/lib/settings';
 import { NextRequest, NextResponse } from 'next/server';
 
-interface Params {
-  params: {
-    id: string;
-  };
+function getIdFromRequest(req: NextRequest): string {
+  const url = new URL(req.url);
+  const segments = url.pathname.split('/');
+  return segments[segments.length - 1] || '';
 }
 
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(req: NextRequest) {
   try {
-    const { id } = params;
+    const id = getIdFromRequest(req);
     const body = await req.json();
     const { key, value, description } = body as {
       key?: string;
@@ -32,9 +32,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest) {
   try {
-    const { id } = params;
+    const id = getIdFromRequest(req);
     await deleteSetting(id);
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

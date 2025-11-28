@@ -8,7 +8,7 @@ import type { SettingRow } from './settings-table-client';
 
 interface BuildSettingsColumnsParams {
   onEdit: (row: SettingRow) => void;
-  onDelete: (row: SettingRow) => void;
+  onDelete: (id: string) => void;
 }
 
 export function buildSettingsColumns({

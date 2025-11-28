@@ -16,4 +16,18 @@ model Setting {
   @@map("settings")
 }
 
+model User {
+  id        BigInt   @id @default(autoincrement())
+  clerkId   String   @unique
+  email     String?  @unique
+  name      String?
+  avatarUrl String?
+  role      String   @default("User")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
 

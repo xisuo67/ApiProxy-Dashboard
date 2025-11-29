@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator';
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import PricingViewPage from '@/features/pricing/components/pricing-view-page';
 import { ServiceProviderSelector } from '@/features/user-pricing/components/service-provider-selector';
+import RequestLogViewPage from '@/features/api-request-log/components/request-log-view-page';
 import { searchParamsCache } from '@/lib/searchparams';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -70,9 +71,17 @@ export default async function Page(props: PageProps) {
               <ServiceProviderSelector />
             </TabsContent>
             <TabsContent value='calculator'>
-              <div className='text-muted-foreground text-sm'>
-                请求日志暂未实现
-              </div>
+              <Suspense
+                fallback={
+                  <DataTableSkeleton
+                    columnCount={6}
+                    rowCount={8}
+                    filterCount={1}
+                  />
+                }
+              >
+                <RequestLogViewPage />
+              </Suspense>
             </TabsContent>
             <TabsContent value='history'>
               <div className='text-muted-foreground text-sm'>

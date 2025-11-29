@@ -12,7 +12,9 @@ export const searchParams = {
   gender: parseAsString,
   category: parseAsString,
   search: parseAsString,
-  key: parseAsString
+  key: parseAsString,
+  startDate: parseAsString,
+  endDate: parseAsString
   // advanced filter
   // filters: getFiltersStateParser().withDefault([]),
   // joinOperator: parseAsStringEnum(['and', 'or']).withDefault('and')

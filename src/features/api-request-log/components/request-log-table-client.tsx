@@ -303,7 +303,7 @@ export function RequestLogTableClient({
             disabled={exporting || !dateRange?.from || !dateRange?.to}
           >
             <IconDownload className='mr-1 h-4 w-4' />
-            {exporting ? '导出中...' : '导出CSV'}
+            {exporting ? '导出中...' : '导出对账单'}
           </Button>
         </div>
       </div>

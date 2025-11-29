@@ -54,11 +54,12 @@ export async function POST(req: NextRequest) {
     if (authError) return authError;
 
     const body = await req.json();
-    const { name, host, api, price, actualHost, actualApi } = body as {
+    const { name, host, api, price, apiKey, actualHost, actualApi } = body as {
       name?: string;
       host?: string;
       api?: string;
       price?: number;
+      apiKey?: string | null;
       actualHost?: string | null;
       actualApi?: string | null;
     };
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       host: host.trim(),
       api: api.trim(),
       price: Number(price),
+      apiKey: apiKey ? apiKey.trim() : null,
       actualHost: actualHost ? actualHost.trim() : null,
       actualApi: actualApi ? actualApi.trim() : null
     });

@@ -1,4 +1,8 @@
-import { updateApiPricing, deleteApiPricing } from '@/lib/pricing';
+import {
+  updateApiPricing,
+  deleteApiPricing,
+  getApiPricingById
+} from '@/lib/pricing';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,6 +34,28 @@ function getIdFromRequest(req: NextRequest): string {
   return segments[segments.length - 1] || '';
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
+    const id = getIdFromRequest(req);
+    if (!id) {
+      return NextResponse.json({ message: '缺少定价 ID' }, { status: 400 });
+    }
+
+    const item = await getApiPricingById(id);
+    if (!item) {
+      return NextResponse.json({ message: '定价配置不存在' }, { status: 404 });
+    }
+
+    return NextResponse.json(item, { status: 200 });
+  } catch (error) {
+    console.error('[PRICING_GET_ERROR]', error);
+    return NextResponse.json({ message: '获取定价配置失败' }, { status: 500 });
+  }
+}
+
 export async function PUT(req: NextRequest) {
   try {
     const authError = await requireAdmin();
@@ -41,11 +67,12 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, host, api, price, actualHost, actualApi } = body as {
+    const { name, host, api, price, apiKey, actualHost, actualApi } = body as {
       name?: string;
       host?: string;
       api?: string;
       price?: number;
+      apiKey?: string | null;
       actualHost?: string | null;
       actualApi?: string | null;
     };
@@ -62,6 +89,7 @@ export async function PUT(req: NextRequest) {
       host: host.trim(),
       api: api.trim(),
       price: Number(price),
+      apiKey: apiKey ? apiKey.trim() : null,
       actualHost: actualHost ? actualHost.trim() : null,
       actualApi: actualApi ? actualApi.trim() : null
     });

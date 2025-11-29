@@ -8,6 +8,7 @@ export interface PricingRow {
   host: string;
   api: string;
   price: number;
+  apiKey: string | null;
   actualHost: string | null;
   actualApi: string | null;
 }

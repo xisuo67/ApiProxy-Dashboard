@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { IconPlus } from '@tabler/icons-react';
+import { IconPlus, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
@@ -48,8 +48,10 @@ export function PricingTableClient({
   const [formHost, setFormHost] = useState('');
   const [formApi, setFormApi] = useState('');
   const [formPrice, setFormPrice] = useState('');
+  const [formApiKey, setFormApiKey] = useState('');
   const [formActualHost, setFormActualHost] = useState('');
   const [formActualApi, setFormActualApi] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -94,20 +96,27 @@ export function PricingTableClient({
   }, [data, totalItems]);
 
   const openCreateModal = () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      toast.error('只有管理员可以新增服务商');
+      return;
+    }
     setEditingRow(null);
     setModalTitle('新增服务商');
     setFormName('');
     setFormHost('');
     setFormApi('');
     setFormPrice('');
+    setFormApiKey('');
     setFormActualHost('');
     setFormActualApi('');
     setModalOpen(true);
   };
 
-  const openEditModal = (row: PricingRow) => {
-    if (!isAdmin) return;
+  const openEditModal = async (row: PricingRow) => {
+    if (!isAdmin) {
+      toast.error('只有管理员可以编辑服务商');
+      return;
+    }
     setEditingRow(row);
     setModalTitle('编辑服务商');
     setFormName(row.name);
@@ -116,6 +125,22 @@ export function PricingTableClient({
     setFormPrice(row.price.toString());
     setFormActualHost(row.actualHost || '');
     setFormActualApi(row.actualApi || '');
+
+    // 通过单独的 API 获取完整信息（包括 apiKey），避免列表查询时泄露敏感信息
+    try {
+      const res = await fetch(`/api/pricing/${row.id}`);
+      if (res.ok) {
+        const fullData = await res.json();
+        setFormApiKey(fullData.apiKey || '');
+      } else {
+        // 如果获取失败，使用空值
+        setFormApiKey('');
+      }
+    } catch (error) {
+      console.error('获取定价详情失败:', error);
+      setFormApiKey('');
+    }
+
     setModalOpen(true);
   };
 
@@ -154,6 +179,7 @@ export function PricingTableClient({
           host: formHost.trim(),
           api: formApi.trim(),
           price: priceNumber,
+          apiKey: formApiKey.trim() || null,
           actualHost: formActualHost.trim() || null,
           actualApi: formActualApi.trim() || null
         })
@@ -176,13 +202,20 @@ export function PricingTableClient({
   };
 
   const onDeleteClick = (row: PricingRow) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      toast.error('只有管理员可以删除服务商');
+      return;
+    }
     setDeletingRow(row);
     setDeleteOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!isAdmin || !deletingRow) return;
+    if (!isAdmin) {
+      toast.error('只有管理员可以删除服务商');
+      return;
+    }
+    if (!deletingRow) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/pricing/${deletingRow.id}`, {
@@ -301,6 +334,33 @@ export function PricingTableClient({
                     onChange={(e) => setFormActualApi(e.target.value)}
                     disabled={saving}
                   />
+                </div>
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>
+                    API 密钥 (apiKey)
+                  </label>
+                  <div className='relative'>
+                    <Input
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder='请输入 API 密钥'
+                      value={formApiKey}
+                      onChange={(e) => setFormApiKey(e.target.value)}
+                      disabled={saving}
+                      className='pr-10'
+                    />
+                    <button
+                      type='button'
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className='text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 transition-colors'
+                      disabled={saving}
+                    >
+                      {showApiKey ? (
+                        <IconEyeOff className='h-4 w-4' />
+                      ) : (
+                        <IconEye className='h-4 w-4' />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

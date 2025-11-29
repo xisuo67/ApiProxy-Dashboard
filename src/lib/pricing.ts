@@ -7,6 +7,7 @@ export interface ApiPricingItem {
   host: string;
   api: string;
   price: number;
+  apiKey: string | null;
   actualHost: string | null;
   actualApi: string | null;
 }
@@ -50,12 +51,14 @@ export async function listApiPricing(params: ListApiPricingParams) {
     prismaAny.apiPricing.count({ where })
   ]);
 
+  // 列表查询不返回敏感字段 apiKey，避免通过 F12 查看网络请求时泄露
   const data: ApiPricingItem[] = (items as any[]).map((item: any) => ({
     id: item.id.toString(),
     name: item.name || '',
     host: item.host,
     api: item.api,
     price: Number(item.price),
+    apiKey: null, // 列表查询不返回敏感信息
     actualHost: item.actualHost ?? null,
     actualApi: item.actualApi ?? null
   }));
@@ -68,6 +71,7 @@ export interface UpsertApiPricingInput {
   host: string;
   api: string;
   price: number;
+  apiKey?: string | null;
   actualHost?: string | null;
   actualApi?: string | null;
 }
@@ -80,6 +84,7 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
       host: input.host,
       api: input.api,
       price: input.price,
+      apiKey: input.apiKey ?? null,
       actualHost: input.actualHost ?? null,
       actualApi: input.actualApi ?? null
     }
@@ -91,6 +96,7 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
     host: created.host,
     api: created.api,
     price: Number(created.price),
+    apiKey: created.apiKey ?? null,
     actualHost: created.actualHost ?? null,
     actualApi: created.actualApi ?? null
   } as ApiPricingItem;
@@ -107,6 +113,7 @@ export async function updateApiPricing(
       host: input.host,
       api: input.api,
       price: input.price,
+      apiKey: input.apiKey ?? null,
       actualHost: input.actualHost ?? null,
       actualApi: input.actualApi ?? null
     }
@@ -118,8 +125,30 @@ export async function updateApiPricing(
     host: updated.host,
     api: updated.api,
     price: Number(updated.price),
+    apiKey: updated.apiKey ?? null,
     actualHost: updated.actualHost ?? null,
     actualApi: updated.actualApi ?? null
+  } as ApiPricingItem;
+}
+
+export async function getApiPricingById(
+  id: string
+): Promise<ApiPricingItem | null> {
+  const item = await prismaAny.apiPricing.findUnique({
+    where: { id: BigInt(id) }
+  });
+
+  if (!item) return null;
+
+  return {
+    id: item.id.toString(),
+    name: item.name || '',
+    host: item.host,
+    api: item.api,
+    price: Number(item.price),
+    apiKey: item.apiKey ?? null,
+    actualHost: item.actualHost ?? null,
+    actualApi: item.actualApi ?? null
   } as ApiPricingItem;
 }
 

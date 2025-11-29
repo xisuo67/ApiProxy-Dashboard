@@ -3,6 +3,7 @@ import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import PricingViewPage from '@/features/pricing/components/pricing-view-page';
+import { ServiceProviderSelector } from '@/features/user-pricing/components/service-provider-selector';
 import { searchParamsCache } from '@/lib/searchparams';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -64,6 +65,9 @@ export default async function Page(props: PageProps) {
               >
                 <PricingViewPage />
               </Suspense>
+            </TabsContent>
+            <TabsContent value='serviceProvider'>
+              <ServiceProviderSelector />
             </TabsContent>
             <TabsContent value='calculator'>
               <div className='text-muted-foreground text-sm'>

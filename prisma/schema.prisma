@@ -35,6 +35,7 @@ model User {
   avatarUrl String?
   role      String   @default("User")
   isActive  Boolean  @default(true)
+  balance   Decimal  @default(0) @db.Decimal(12, 2) // 用户余额（元）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

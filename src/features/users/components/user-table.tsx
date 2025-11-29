@@ -18,14 +18,15 @@ export async function UserTable() {
     isAdmin = me?.role === 'Admin';
   }
 
-  const data = users.map((u) => ({
+  const data = users.map((u: any) => ({
     id: u.id.toString(),
     clerkId: u.clerkId,
     name: u.name,
     email: u.email,
     avatarUrl: u.avatarUrl,
     role: u.role,
-    isActive: u.isActive
+    isActive: u.isActive,
+    balance: u.balance ? Number(u.balance) : 0
   }));
 
   return (

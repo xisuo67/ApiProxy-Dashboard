@@ -36,9 +36,10 @@ export async function PATCH(req: Request) {
 
   const id = getIdFromRequest(req);
   const body = await req.json();
-  const { role, isActive } = body as {
+  const { role, isActive, balance } = body as {
     role?: string;
     isActive?: boolean;
+    balance?: number;
   };
 
   try {
@@ -46,7 +47,8 @@ export async function PATCH(req: Request) {
       where: { id: BigInt(id) },
       data: {
         ...(role && { role }),
-        ...(typeof isActive === 'boolean' && { isActive })
+        ...(typeof isActive === 'boolean' && { isActive }),
+        ...(typeof balance === 'number' && { balance })
       }
     });
 
@@ -54,7 +56,8 @@ export async function PATCH(req: Request) {
       {
         id: updated.id.toString(),
         role: updated.role,
-        isActive: updated.isActive
+        isActive: updated.isActive,
+        balance: (updated as any).balance ?? 0
       },
       { status: 200 }
     );

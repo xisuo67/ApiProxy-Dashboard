@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertModal } from '@/components/modal/alert-modal';
+import { Input } from '@/components/ui/input';
 
 export interface UserRow {
   id: string;
@@ -34,6 +35,7 @@ export interface UserRow {
   avatarUrl?: string | null;
   role: string;
   isActive: boolean;
+  balance: number;
 }
 
 interface UserTableClientProps {
@@ -55,6 +57,7 @@ export function UserTableClient({
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [editRole, setEditRole] = useState<string>('User');
   const [editActive, setEditActive] = useState<boolean>(true);
+  const [editBalance, setEditBalance] = useState<string>('0');
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -91,11 +94,16 @@ export function UserTableClient({
     setEditingUser(row);
     setEditRole(row.role || 'User');
     setEditActive(row.isActive);
+    setEditBalance(
+      typeof row.balance === 'number' ? row.balance.toString() : '0'
+    );
     setEditOpen(true);
   };
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
+    const parsedBalance = parseFloat(editBalance || '0');
+    const safeBalance = Number.isNaN(parsedBalance) ? 0 : parsedBalance;
     setSavingEdit(true);
     try {
       const res = await fetch(`/api/admin/users/${editingUser.id}`, {
@@ -103,7 +111,8 @@ export function UserTableClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           role: editRole,
-          isActive: editActive
+          isActive: editActive,
+          balance: safeBalance
         })
       });
       if (!res.ok) {
@@ -215,6 +224,16 @@ export function UserTableClient({
                   <SelectItem value='Admin'>Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>余额（元）</label>
+              <Input
+                type='number'
+                step='0.01'
+                value={editBalance}
+                onChange={(e) => setEditBalance(e.target.value)}
+                placeholder='请输入余额'
+              />
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-sm font-medium'>启用状态</span>

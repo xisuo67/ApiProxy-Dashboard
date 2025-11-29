@@ -82,6 +82,15 @@ export function buildUserColumns({
       }
     },
     {
+      id: 'balance',
+      accessorKey: 'balance',
+      header: '余额',
+      cell: ({ row }) => {
+        const value = row.original.balance ?? 0;
+        return <span>{value.toFixed(2)}</span>;
+      }
+    },
+    {
       id: 'isActive',
       accessorKey: 'isActive',
       header: '状态',

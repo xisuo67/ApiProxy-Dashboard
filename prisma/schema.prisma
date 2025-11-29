@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model ApiPricing {
+  id         BigInt  @id
+  host       String
+  api        String
+  price      Decimal @db.Decimal(10, 4)
+  actualHost String? // 实际主机地址
+  actualApi  String? // 实际接口地址
+
+  @@map("api_pricing")
+}
+
 model Setting {
   id          BigInt   @id
   key         String   @unique

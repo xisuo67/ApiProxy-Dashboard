@@ -22,6 +22,14 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Dashboard
   },
   {
+    title: '价格与账单',
+    url: '/dashboard/billing',
+    icon: 'billing',
+    shortcut: ['b', 'b'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Product',
     url: '/dashboard/product',
     icon: 'product',
@@ -34,7 +42,6 @@ export const navItems: NavItem[] = [
     url: '#', // Placeholder as there is no direct link for the parent
     icon: 'billing',
     isActive: true,
-
     items: [
       {
         title: 'Profile',

@@ -192,17 +192,21 @@ export function ServiceProviderSelector() {
                 </CardHeader>
                 <CardContent className='space-y-2'>
                   <div className='text-muted-foreground text-sm'>
-                    <div className='font-medium'>价格</div>
-                    <div className='text-emerald-600'>
-                      {item.apiPricing.price.toFixed(4)} 元/次
-                    </div>
+                    <span className='font-medium'>价格：</span>
+                    <span className='text-emerald-600'>
+                      {item.apiPricing.price.toFixed(2)} 元/次
+                    </span>
                   </div>
                   <div className='text-muted-foreground text-sm'>
-                    <div className='font-medium'>地址</div>
-                    <div className='font-mono text-xs'>
+                    <span className='font-medium'>地址：</span>
+                    <span className='font-mono text-xs'>
                       {item.apiPricing.host}
                       {item.apiPricing.api}
-                    </div>
+                    </span>
+                  </div>
+                  <div className='text-muted-foreground text-sm'>
+                    <span className='font-medium'>密钥：</span>
+                    <span className='font-mono text-xs'>{item.id}</span>
                   </div>
                 </CardContent>
               </Card>

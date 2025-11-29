@@ -71,7 +71,7 @@ model ApiRequestLog {
 }
 
 model UserPricing {
-  id           BigInt     @id @default(autoincrement())
+  id           BigInt     @id
   userId       BigInt     // 用户 ID
   user         User       @relation("UserUserPricings", fields: [userId], references: [id])
   apiPricingId BigInt     // 定价配置 ID

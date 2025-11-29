@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { generateIdBigInt } from '@/lib/snowflake';
 
 export interface UserPricingItem {
   id: string;
@@ -75,6 +76,7 @@ export async function createUserPricing(userId: string, apiPricingId: string) {
 
   const created = await prismaAny.userPricing.create({
     data: {
+      id: generateIdBigInt(),
       userId: BigInt(userId),
       apiPricingId: BigInt(apiPricingId)
     },

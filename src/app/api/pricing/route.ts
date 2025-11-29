@@ -82,6 +82,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error('[PRICING_POST_ERROR]', error);
-    return NextResponse.json({ message: '新增定价失败' }, { status: 500 });
+    return NextResponse.json({ message: '新增服务商失败' }, { status: 500 });
   }
 }

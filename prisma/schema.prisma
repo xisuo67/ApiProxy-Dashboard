@@ -47,18 +47,20 @@ model User {
 }
 
 model ApiRequestLog {
-  id           BigInt   @id @default(autoincrement())
-  userClerkId  String   // 用户 Clerk ID
-  user         User?    @relation("UserApiRequestLogs", fields: [userClerkId], references: [clerkId])
-  requestApi   String   // 请求接口（如方法+路径）
-  requestBody  String   @db.Text // 请求参数
-  responseBody String   @db.Text // 返回参数/响应内容
-  cost         Decimal  @db.Decimal(12, 4) // 请求费用
-  createdAt    DateTime @default(now())    // 请求时间
+  id             BigInt   @id @default(autoincrement())
+  userClerkId    String   // 用户 Clerk ID
+  user           User?    @relation("UserApiRequestLogs", fields: [userClerkId], references: [clerkId])
+  serviceProvider String  // 服务商名称（记录时从 ApiPricing.name 复制，避免删除定价后无法显示）
+  requestApi     String   // 请求接口（如方法+路径）
+  requestBody    String   @db.Text // 请求参数
+  responseBody   String   @db.Text // 返回参数/响应内容
+  cost           Decimal  @db.Decimal(12, 4) // 请求费用
+  createdAt      DateTime @default(now())    // 请求时间
 
   @@index([userClerkId, createdAt]) // 按用户和时间查询
   @@index([createdAt])              // 按时间范围查询
   @@index([cost])                   // 按费用区间/排序查询
+  @@index([serviceProvider])        // 按服务商查询
   @@map("api_request_logs")
 }
 

@@ -41,7 +41,7 @@ export function PricingTableClient({
   const [total, setTotal] = useState(totalItems);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalTitle, setModalTitle] = useState('新增定价');
+  const [modalTitle, setModalTitle] = useState('新增服务商');
   const [editingRow, setEditingRow] = useState<PricingRow | null>(null);
 
   const [formName, setFormName] = useState('');
@@ -96,7 +96,7 @@ export function PricingTableClient({
   const openCreateModal = () => {
     if (!isAdmin) return;
     setEditingRow(null);
-    setModalTitle('新增定价');
+    setModalTitle('新增服务商');
     setFormName('');
     setFormHost('');
     setFormApi('');
@@ -109,7 +109,7 @@ export function PricingTableClient({
   const openEditModal = (row: PricingRow) => {
     if (!isAdmin) return;
     setEditingRow(row);
-    setModalTitle('编辑定价');
+    setModalTitle('编辑服务商');
     setFormName(row.name);
     setFormHost(row.host);
     setFormApi(row.api);
@@ -217,7 +217,7 @@ export function PricingTableClient({
           {isAdmin && (
             <Button size='sm' onClick={openCreateModal}>
               <IconPlus className='mr-1 h-4 w-4' />
-              新增定价
+              新增服务商
             </Button>
           )}
         </DataTableToolbar>

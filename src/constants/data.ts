@@ -3,7 +3,7 @@ import { NavItem } from '@/types';
 //Info: The following data is used for the sidebar navigation and Cmd K bar.
 export const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
+    title: '数据看板',
     url: '/dashboard/overview',
     icon: 'dashboard',
     isActive: false,
@@ -19,25 +19,25 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Account',
+    title: '账号管理',
     url: '#', // Placeholder as there is no direct link for the parent
     icon: 'billing',
     isActive: true,
     items: [
       {
-        title: 'Profile',
+        title: '个人信息',
         url: '/dashboard/profile',
         icon: 'userPen',
         shortcut: ['m', 'm']
       },
+      // {
+      //   title: 'Login',
+      //   shortcut: ['l', 'l'],
+      //   url: '/',
+      //   icon: 'login'
+      // },
       {
-        title: 'Login',
-        shortcut: ['l', 'l'],
-        url: '/',
-        icon: 'login'
-      },
-      {
-        title: 'Users',
+        title: '用户管理',
         url: '/dashboard/users',
         icon: 'user',
         shortcut: ['u', 'u']
@@ -45,7 +45,7 @@ export const navItems: NavItem[] = [
     ]
   },
   {
-    title: 'Settings',
+    title: '系统设置',
     url: '/dashboard/settings',
     icon: 'settings',
     shortcut: ['s', 's'],

@@ -9,6 +9,7 @@ datasource db {
 
 model ApiPricing {
   id         BigInt  @id
+  name       String
   host       String
   api        String
   price      Decimal @db.Decimal(10, 4)
@@ -39,7 +40,26 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 与请求日志的一对多关系
+  apiRequestLogs ApiRequestLog[] @relation("UserApiRequestLogs")
+
   @@map("users")
+}
+
+model ApiRequestLog {
+  id           BigInt   @id @default(autoincrement())
+  userClerkId  String   // 用户 Clerk ID
+  user         User?    @relation("UserApiRequestLogs", fields: [userClerkId], references: [clerkId])
+  requestApi   String   // 请求接口（如方法+路径）
+  requestBody  String   @db.Text // 请求参数
+  responseBody String   @db.Text // 返回参数/响应内容
+  cost         Decimal  @db.Decimal(12, 4) // 请求费用
+  createdAt    DateTime @default(now())    // 请求时间
+
+  @@index([userClerkId, createdAt]) // 按用户和时间查询
+  @@index([createdAt])              // 按时间范围查询
+  @@index([cost])                   // 按费用区间/排序查询
+  @@map("api_request_logs")
 }
 
 

@@ -4,6 +4,7 @@ import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 export interface PricingRow {
   id: string;
+  name: string;
   host: string;
   api: string;
   price: number;
@@ -24,16 +25,29 @@ export function buildPricingColumns({
 }: BuildPricingColumnsParams): ColumnDef<PricingRow>[] {
   const baseColumns: ColumnDef<PricingRow>[] = [
     {
+      accessorKey: 'name',
+      header: '名称',
+      cell: ({ row }) => (
+        <span className='font-medium'>{row.original.name}</span>
+      ),
+      meta: {
+        label: '名称',
+        placeholder: '按名称搜索...',
+        variant: 'text'
+      },
+      enableColumnFilter: true
+    },
+    {
       accessorKey: 'host',
       header: '接口地址',
       cell: ({ row }) => (
         <span className='font-medium'>{row.original.host}</span>
       ),
-      meta: {
-        label: '主机或接口',
-        placeholder: '按主机地址或接口路径搜索...',
-        variant: 'text'
-      },
+      // meta: {
+      //   label: '主机或接口',
+      //   placeholder: '按主机地址或接口路径搜索...',
+      //   variant: 'text'
+      // },
       enableColumnFilter: true
     },
     {

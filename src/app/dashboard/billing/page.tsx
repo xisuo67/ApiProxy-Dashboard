@@ -41,8 +41,9 @@ export default async function Page(props: PageProps) {
         <Tabs defaultValue='pricing' className='flex flex-1 flex-col'>
           <TabsList className='w-full justify-start'>
             <TabsTrigger value='recharge'>充值</TabsTrigger>
-            <TabsTrigger value='pricing'>定价</TabsTrigger>
-            <TabsTrigger value='calculator'>费用计算器</TabsTrigger>
+            <TabsTrigger value='pricing'>服务商定价</TabsTrigger>
+            <TabsTrigger value='serviceProvider'>选择服务商</TabsTrigger>
+            <TabsTrigger value='calculator'>请求日志</TabsTrigger>
             <TabsTrigger value='history'>订单历史</TabsTrigger>
           </TabsList>
           <div className='mt-4 flex-1'>
@@ -66,7 +67,7 @@ export default async function Page(props: PageProps) {
             </TabsContent>
             <TabsContent value='calculator'>
               <div className='text-muted-foreground text-sm'>
-                费用计算器暂未实现，可根据调用次数和单价动态计算费用。
+                请求日志暂未实现
               </div>
             </TabsContent>
             <TabsContent value='history'>

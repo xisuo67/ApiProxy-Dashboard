@@ -41,7 +41,8 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { host, api, price, actualHost, actualApi } = body as {
+    const { name, host, api, price, actualHost, actualApi } = body as {
+      name?: string;
       host?: string;
       api?: string;
       price?: number;
@@ -49,14 +50,15 @@ export async function PUT(req: NextRequest) {
       actualApi?: string | null;
     };
 
-    if (!host || !api || price == null) {
+    if (!name || !host || !api || price == null) {
       return NextResponse.json(
-        { message: 'host、api 和 price 为必填项' },
+        { message: 'name、host、api 和 price 为必填项' },
         { status: 400 }
       );
     }
 
     const updated = await updateApiPricing(id, {
+      name: name.trim(),
       host: host.trim(),
       api: api.trim(),
       price: Number(price),

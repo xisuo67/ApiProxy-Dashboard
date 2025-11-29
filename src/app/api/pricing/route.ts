@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
     if (authError) return authError;
 
     const body = await req.json();
-    const { host, api, price, actualHost, actualApi } = body as {
+    const { name, host, api, price, actualHost, actualApi } = body as {
+      name?: string;
       host?: string;
       api?: string;
       price?: number;
@@ -62,14 +63,15 @@ export async function POST(req: NextRequest) {
       actualApi?: string | null;
     };
 
-    if (!host || !api || price == null) {
+    if (!name || !host || !api || price == null) {
       return NextResponse.json(
-        { message: 'host、api 和 price 为必填项' },
+        { message: 'name、host、api 和 price 为必填项' },
         { status: 400 }
       );
     }
 
     const created = await createApiPricing({
+      name: name.trim(),
       host: host.trim(),
       api: api.trim(),
       price: Number(price),

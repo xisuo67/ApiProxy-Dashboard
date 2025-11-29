@@ -3,6 +3,7 @@ import { generateIdBigInt } from '@/lib/snowflake';
 
 export interface ApiPricingItem {
   id: string;
+  name: string;
   host: string;
   api: string;
   price: number;
@@ -31,7 +32,11 @@ export async function listApiPricing(params: ListApiPricingParams) {
   const where =
     search && search.length > 0
       ? {
-          OR: [{ host: { contains: search } }, { api: { contains: search } }]
+          OR: [
+            { name: { contains: search } },
+            { host: { contains: search } },
+            { api: { contains: search } }
+          ]
         }
       : {};
 
@@ -47,6 +52,7 @@ export async function listApiPricing(params: ListApiPricingParams) {
 
   const data: ApiPricingItem[] = (items as any[]).map((item: any) => ({
     id: item.id.toString(),
+    name: item.name || '',
     host: item.host,
     api: item.api,
     price: Number(item.price),
@@ -58,6 +64,7 @@ export async function listApiPricing(params: ListApiPricingParams) {
 }
 
 export interface UpsertApiPricingInput {
+  name: string;
   host: string;
   api: string;
   price: number;
@@ -69,6 +76,7 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
   const created = await prismaAny.apiPricing.create({
     data: {
       id: generateIdBigInt(),
+      name: input.name,
       host: input.host,
       api: input.api,
       price: input.price,
@@ -79,6 +87,7 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
 
   return {
     id: created.id.toString(),
+    name: created.name || '',
     host: created.host,
     api: created.api,
     price: Number(created.price),
@@ -94,6 +103,7 @@ export async function updateApiPricing(
   const updated = await prismaAny.apiPricing.update({
     where: { id: BigInt(id) },
     data: {
+      name: input.name,
       host: input.host,
       api: input.api,
       price: input.price,
@@ -104,6 +114,7 @@ export async function updateApiPricing(
 
   return {
     id: updated.id.toString(),
+    name: updated.name || '',
     host: updated.host,
     api: updated.api,
     price: Number(updated.price),

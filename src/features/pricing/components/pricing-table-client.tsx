@@ -44,6 +44,7 @@ export function PricingTableClient({
   const [modalTitle, setModalTitle] = useState('新增定价');
   const [editingRow, setEditingRow] = useState<PricingRow | null>(null);
 
+  const [formName, setFormName] = useState('');
   const [formHost, setFormHost] = useState('');
   const [formApi, setFormApi] = useState('');
   const [formPrice, setFormPrice] = useState('');
@@ -96,6 +97,7 @@ export function PricingTableClient({
     if (!isAdmin) return;
     setEditingRow(null);
     setModalTitle('新增定价');
+    setFormName('');
     setFormHost('');
     setFormApi('');
     setFormPrice('');
@@ -108,6 +110,7 @@ export function PricingTableClient({
     if (!isAdmin) return;
     setEditingRow(row);
     setModalTitle('编辑定价');
+    setFormName(row.name);
     setFormHost(row.host);
     setFormApi(row.api);
     setFormPrice(row.price.toString());
@@ -122,8 +125,13 @@ export function PricingTableClient({
       return;
     }
 
-    if (!formHost.trim() || !formApi.trim() || !formPrice.trim()) {
-      toast.error('请填写主机地址、接口和价格');
+    if (
+      !formName.trim() ||
+      !formHost.trim() ||
+      !formApi.trim() ||
+      !formPrice.trim()
+    ) {
+      toast.error('请填写名称、主机地址、接口和价格');
       return;
     }
 
@@ -142,6 +150,7 @@ export function PricingTableClient({
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          name: formName.trim(),
           host: formHost.trim(),
           api: formApi.trim(),
           price: priceNumber,
@@ -221,6 +230,18 @@ export function PricingTableClient({
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
           <div className='space-y-4'>
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>
+                名称
+                <span className='text-destructive ml-1'>*</span>
+              </label>
+              <Input
+                placeholder='例如: 微信支付接口'
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                disabled={saving}
+              />
+            </div>
             <div className='space-y-2'>
               <label className='text-sm font-medium'>
                 主机地址 (host)

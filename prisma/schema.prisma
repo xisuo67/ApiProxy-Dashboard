@@ -48,6 +48,8 @@ model User {
   apiRequestLogs ApiRequestLog[] @relation("UserApiRequestLogs")
   // 与定价配置的多对多关系
   userPricings UserPricing[] @relation("UserUserPricings")
+  // 与小程序配置的一对多关系
+  miniProgramSettings MiniProgramSettings[] @relation("UserMiniProgramSettings")
 
   @@map("users")
 }
@@ -82,6 +84,23 @@ model UserPricing {
   @@index([userId])                // 按用户查询
   @@index([apiPricingId])          // 按定价配置查询
   @@map("user_pricings")
+}
+
+model MiniProgramSettings {
+  id         BigInt   @id
+  userId     BigInt   // 用户 ID
+  user       User     @relation("UserMiniProgramSettings", fields: [userId], references: [id])
+  name       String   // 小程序名称
+  appid      String   // 小程序 AppID
+  isApproved Boolean  @default(false) // 审核状态
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])        // 按用户查询
+  @@index([name])          // 按名称查询
+  @@index([appid])         // 按 AppID 查询
+  @@index([isApproved])    // 按审核状态查询
+  @@map("mini_program_settings")
 }
 
 

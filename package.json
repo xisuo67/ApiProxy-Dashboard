@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:clean": "pnpm clean && pnpm dev",
+    "clean": "node -e \"const fs = require('fs'); const path = require('path'); const dirs = ['.next', path.join('node_modules', '.cache')]; dirs.forEach(dir => { try { if (fs.existsSync(dir)) { fs.rmSync(dir, { recursive: true, force: true }); console.log(`已删除: ${dir}`); } } catch(e) { console.error(`删除失败: ${dir}`, e.message); } });\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

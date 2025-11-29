@@ -5,6 +5,7 @@ import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import PricingViewPage from '@/features/pricing/components/pricing-view-page';
 import { ServiceProviderSelector } from '@/features/user-pricing/components/service-provider-selector';
 import RequestLogViewPage from '@/features/api-request-log/components/request-log-view-page';
+import MiniProgramViewPage from '@/features/mini-program/components/mini-program-view-page';
 import { searchParamsCache } from '@/lib/searchparams';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -45,6 +46,7 @@ export default async function Page(props: PageProps) {
             <TabsTrigger value='recharge'>充值</TabsTrigger>
             <TabsTrigger value='pricing'>服务商定价</TabsTrigger>
             <TabsTrigger value='serviceProvider'>选择服务商</TabsTrigger>
+            <TabsTrigger value='miniProgram'>小程序管理</TabsTrigger>
             <TabsTrigger value='calculator'>请求日志</TabsTrigger>
             <TabsTrigger value='history'>订单历史</TabsTrigger>
           </TabsList>
@@ -69,6 +71,19 @@ export default async function Page(props: PageProps) {
             </TabsContent>
             <TabsContent value='serviceProvider'>
               <ServiceProviderSelector />
+            </TabsContent>
+            <TabsContent value='miniProgram'>
+              <Suspense
+                fallback={
+                  <DataTableSkeleton
+                    columnCount={4}
+                    rowCount={8}
+                    filterCount={1}
+                  />
+                }
+              >
+                <MiniProgramViewPage />
+              </Suspense>
             </TabsContent>
             <TabsContent value='calculator'>
               <Suspense

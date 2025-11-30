@@ -1,5 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { generateIdBigInt } from '@/lib/snowflake';
+import {
+  getApisixConfig,
+  getNextjsServiceUrl,
+  upsertApisixRoute,
+  deleteApisixRoute
+} from '@/lib/apisix';
 
 export interface ApiPricingItem {
   id: string;
@@ -80,9 +86,28 @@ export interface UpsertApiPricingInput {
 }
 
 export async function createApiPricing(input: UpsertApiPricingInput) {
+  // 检查是否已存在相同的 api 路径
+  const apiPath = input.api.trim();
+  const existing = await prismaAny.apiPricing.findFirst({
+    where: {
+      api: apiPath,
+      isEnabled: true // 只检查启用的服务商
+    }
+  });
+
+  if (existing) {
+    throw new Error(
+      `API 路径 "${apiPath}" 已被服务商 "${existing.name}" 使用，请使用不同的路径`
+    );
+  }
+
+  const apiPricingId = generateIdBigInt();
+  const apiPricingIdStr = apiPricingId.toString();
+
+  // 创建数据库记录
   const created = await prismaAny.apiPricing.create({
     data: {
-      id: generateIdBigInt(),
+      id: apiPricingId,
       name: input.name,
       host: input.host,
       api: input.api,
@@ -93,6 +118,55 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
       isEnabled: input.isEnabled ?? true
     }
   });
+
+  // 创建 APISIX 路由（仅在启用时创建）
+  if (input.isEnabled !== false) {
+    try {
+      const apisixConfig = await getApisixConfig();
+      const nextjsServiceUrl = await getNextjsServiceUrl();
+
+      // 构建 APISIX 路由配置
+      // URI 匹配：使用 api 字段（例如：/api/Wxapp/JSLogin）
+      const apiPath = input.api.startsWith('/') ? input.api : `/${input.api}`;
+
+      // Upstream 指向 Next.js 网关接口（例如：/api/gateway/api/Wxapp/JSLogin）
+      const gatewayPath = `/api/gateway${apiPath}`;
+      const upstreamUrl = `${nextjsServiceUrl.replace(/\/$/, '')}${gatewayPath}`;
+
+      // 解析 upstream URL
+      const upstreamUrlObj = new URL(upstreamUrl);
+      const upstreamHost = upstreamUrlObj.hostname;
+      const upstreamPort =
+        upstreamUrlObj.port ||
+        (upstreamUrlObj.protocol === 'https:' ? 443 : 80);
+
+      await upsertApisixRoute(apisixConfig, apiPricingIdStr, {
+        name: input.name,
+        uri: apiPath, // APISIX 路由匹配的 URI（用户请求的路径，例如：/api/Wxapp/JSLogin）
+        upstream: {
+          nodes: {
+            [`${upstreamHost}:${upstreamPort}`]: 1
+          },
+          type: 'roundrobin'
+        },
+        plugins: {
+          'key-auth': {
+            header: 'X-API-Key' // 使用 X-API-Key header
+          },
+          'proxy-rewrite': {
+            uri: gatewayPath // 转发到 Next.js 时的路径（例如：/api/gateway/api/Wxapp/JSLogin）
+          }
+        }
+      });
+    } catch (error) {
+      // APISIX 路由创建失败，记录错误但不影响数据库记录
+      console.error('[APISIX_ROUTE_CREATE_ERROR]', {
+        apiPricingId: apiPricingIdStr,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // 可以选择回滚数据库操作，或者继续（让管理员手动创建路由）
+    }
+  }
 
   return {
     id: created.id.toString(),
@@ -111,6 +185,37 @@ export async function updateApiPricing(
   id: string,
   input: UpsertApiPricingInput
 ) {
+  // 获取更新前的配置（用于判断是否需要更新 APISIX 路由）
+  const oldConfig = await prismaAny.apiPricing.findUnique({
+    where: { id: BigInt(id) },
+    select: { api: true, isEnabled: true, name: true }
+  });
+
+  if (!oldConfig) {
+    throw new Error('服务商配置不存在');
+  }
+
+  // 如果更新了 api 路径，检查是否与其他服务商冲突
+  if (input.api && input.api.trim() !== oldConfig.api) {
+    const apiPath = input.api.trim();
+    const existing = await prismaAny.apiPricing.findFirst({
+      where: {
+        api: apiPath,
+        isEnabled: true, // 只检查启用的服务商
+        id: {
+          not: BigInt(id) // 排除当前记录
+        }
+      }
+    });
+
+    if (existing) {
+      throw new Error(
+        `API 路径 "${apiPath}" 已被服务商 "${existing.name}" 使用，请使用不同的路径`
+      );
+    }
+  }
+
+  // 更新数据库记录
   const updated = await prismaAny.apiPricing.update({
     where: { id: BigInt(id) },
     data: {
@@ -124,6 +229,70 @@ export async function updateApiPricing(
       ...(input.isEnabled !== undefined && { isEnabled: input.isEnabled })
     }
   });
+
+  // 更新 APISIX 路由
+  const isEnabled =
+    input.isEnabled !== undefined
+      ? input.isEnabled
+      : (oldConfig?.isEnabled ?? true);
+  const apiPath = input.api || oldConfig?.api;
+
+  if (isEnabled && apiPath) {
+    try {
+      const apisixConfig = await getApisixConfig();
+      const nextjsServiceUrl = await getNextjsServiceUrl();
+
+      // 构建 APISIX 路由配置
+      const apiPathFormatted = apiPath.startsWith('/')
+        ? apiPath
+        : `/${apiPath}`;
+      const gatewayPath = `/api/gateway${apiPathFormatted}`;
+      const upstreamUrl = `${nextjsServiceUrl.replace(/\/$/, '')}${gatewayPath}`;
+
+      // 解析 upstream URL
+      const upstreamUrlObj = new URL(upstreamUrl);
+      const upstreamHost = upstreamUrlObj.hostname;
+      const upstreamPort =
+        upstreamUrlObj.port ||
+        (upstreamUrlObj.protocol === 'https:' ? 443 : 80);
+
+      await upsertApisixRoute(apisixConfig, id, {
+        name: input.name || updated.name,
+        uri: apiPathFormatted, // APISIX 路由匹配的 URI（用户请求的路径，例如：/api/Wxapp/JSLogin）
+        upstream: {
+          nodes: {
+            [`${upstreamHost}:${upstreamPort}`]: 1
+          },
+          type: 'roundrobin'
+        },
+        plugins: {
+          'key-auth': {
+            header: 'X-API-Key'
+          },
+          'proxy-rewrite': {
+            uri: gatewayPath // 转发到 Next.js 时的路径（例如：/api/gateway/api/Wxapp/JSLogin）
+          }
+        }
+      });
+    } catch (error) {
+      // APISIX 路由更新失败，记录错误但不影响数据库更新
+      console.error('[APISIX_ROUTE_UPDATE_ERROR]', {
+        apiPricingId: id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  } else if (!isEnabled && oldConfig?.isEnabled) {
+    // 如果从启用变为禁用，删除 APISIX 路由
+    try {
+      const apisixConfig = await getApisixConfig();
+      await deleteApisixRoute(apisixConfig, id);
+    } catch (error) {
+      console.error('[APISIX_ROUTE_DELETE_ERROR]', {
+        apiPricingId: id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
 
   return {
     id: updated.id.toString(),
@@ -193,6 +362,19 @@ export async function deleteApiPricing(id: string) {
     );
   }
 
+  // 删除 APISIX 路由
+  try {
+    const apisixConfig = await getApisixConfig();
+    await deleteApisixRoute(apisixConfig, id);
+  } catch (error) {
+    // APISIX 路由删除失败，记录错误但不影响数据库删除
+    console.error('[APISIX_ROUTE_DELETE_ERROR]', {
+      apiPricingId: id,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
+  // 删除数据库记录
   await prismaAny.apiPricing.delete({
     where: { id: apiPricingId }
   });

@@ -19,12 +19,15 @@ interface CreateRouteParams {
   name: string; // 路由名称
   uri: string; // 匹配的 URI 路径，从 ApiPricing.api 获取
   upstream: {
-    nodes: Record<string, number>; // 上游节点，从 ApiPricing.host 获取
+    nodes: Record<string, number>; // 上游节点，格式: { "hostname:port": weight }
     type: 'roundrobin';
   };
   plugins?: {
     'key-auth'?: {
-      header: string; // 默认 'apikey'
+      header: string; // 默认 'apikey'，我们使用 'X-API-Key'
+    };
+    'proxy-rewrite'?: {
+      uri: string; // 转发到上游时的 URI 路径
     };
   };
 }
@@ -203,4 +206,35 @@ export async function getApisixConfig(): Promise<ApisixConfig> {
     adminKey,
     adminUrl
   };
+}
+
+/**
+ * 获取 Next.js 服务地址（用于配置 APISIX upstream）
+ */
+export async function getNextjsServiceUrl(): Promise<string> {
+  // 优先从 settings 表获取
+  const setting = await prisma.setting.findUnique({
+    where: { key: 'NextjsServiceUrl' }
+  });
+
+  if (setting?.value) {
+    return setting.value;
+  }
+
+  // 如果 settings 表中没有，尝试从环境变量获取
+  const envUrl =
+    process.env.NEXTJS_SERVICE_URL || process.env.NEXT_PUBLIC_SERVICE_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // 默认值（开发环境）
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+
+  console.error('[NEXTJS_SERVICE_URL_ERROR]', 'NextjsServiceUrl 未配置');
+  throw new Error(
+    'Next.js 服务地址未配置，请在系统设置中配置 NextjsServiceUrl'
+  );
 }

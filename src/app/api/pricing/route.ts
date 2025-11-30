@@ -85,8 +85,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(created, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PRICING_POST_ERROR]', error);
+
+    // 如果是业务逻辑错误（如 API 路径重复），返回具体错误信息
+    if (error.message && error.message.includes('API 路径')) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+
     return NextResponse.json({ message: '新增服务商失败' }, { status: 500 });
   }
 }

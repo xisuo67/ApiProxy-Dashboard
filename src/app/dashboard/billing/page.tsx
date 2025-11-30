@@ -70,6 +70,9 @@ export default async function Page(props: PageProps) {
               </Suspense>
             </TabsContent>
             <TabsContent value='serviceProvider'>
+              <div className='text-muted-foreground mb-2 text-sm'>
+                选择根据服务商定价选择合适服务商后，需通过小程序管理，将appid发送给对应服务商审核通过后，可通过服务地址与密钥调用接口
+              </div>
               <ServiceProviderSelector />
             </TabsContent>
             <TabsContent value='miniProgram'>
@@ -82,6 +85,10 @@ export default async function Page(props: PageProps) {
                   />
                 }
               >
+                <div className='text-muted-foreground mb-2 text-sm'>
+                  设置小程序，关联服务商，将小程序appid，发往服务商，人工审核通过后即可获取该小程序下code
+                </div>
+
                 <MiniProgramViewPage />
               </Suspense>
             </TabsContent>

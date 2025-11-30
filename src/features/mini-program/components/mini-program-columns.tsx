@@ -126,7 +126,7 @@ export function buildMiniProgramColumns({
     },
     {
       id: 'actions',
-      header: '操作',
+      header: () => <div className='text-center'>操作</div>,
       cell: ({ row }) => {
         return (
           <div className='flex items-center justify-center gap-2'>
@@ -134,22 +134,25 @@ export function buildMiniProgramColumns({
               variant='ghost'
               size='sm'
               onClick={() => onEdit(row.original)}
-              className='h-8 w-8 p-0'
+              className='h-8 px-2'
             >
-              <IconEdit className='h-4 w-4' />
-              <span className='sr-only'>编辑</span>
+              <IconEdit className='mr-1 h-4 w-4' />
+              修改
             </Button>
             <Button
               variant='ghost'
               size='sm'
               onClick={() => onDelete(row.original)}
-              className='text-destructive hover:text-destructive h-8 w-8 p-0'
+              className='text-destructive hover:text-destructive h-8 px-2'
             >
-              <IconTrash className='h-4 w-4' />
-              <span className='sr-only'>删除</span>
+              <IconTrash className='mr-1 h-4 w-4' />
+              删除
             </Button>
           </div>
         );
+      },
+      meta: {
+        align: 'center'
       }
     }
   ];

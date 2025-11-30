@@ -100,7 +100,7 @@ export function buildPricingColumns({
           <div className='flex items-center justify-center gap-3'>
             <Button
               size='sm'
-              variant='outline'
+              variant='ghost'
               className='h-8 px-3'
               onClick={() => onEdit(data)}
             >
@@ -109,7 +109,7 @@ export function buildPricingColumns({
             </Button>
             <Button
               size='sm'
-              variant='outline'
+              variant='ghost'
               className='h-8 px-3 text-red-500'
               onClick={() => onDelete(data)}
             >

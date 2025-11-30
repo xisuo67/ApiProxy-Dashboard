@@ -7,6 +7,8 @@ export interface MiniProgramItem {
   name: string;
   appid: string;
   isApproved: boolean;
+  apiPricingIds: string[]; // 关联的服务商 ID 列表
+  apiPricings?: Array<{ id: string; name: string }>; // 关联的服务商信息（用于显示）
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,6 +26,7 @@ export interface UpsertMiniProgramInput {
   name: string;
   appid: string;
   isApproved?: boolean;
+  apiPricingIds?: string[]; // 关联的服务商 ID 列表
 }
 
 const prismaAny = prisma as any;
@@ -69,15 +72,53 @@ export async function listMiniProgram(params: ListMiniProgramParams) {
     prismaAny.miniProgramSettings.count({ where })
   ]);
 
-  const data: MiniProgramItem[] = (items as any[]).map((item: any) => ({
-    id: item.id.toString(),
-    userId: item.userId.toString(),
-    name: item.name,
-    appid: item.appid,
-    isApproved: item.isApproved || false,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt
-  }));
+  // 获取所有相关的 ApiPricing 数据
+  const allApiPricingIds = new Set<string>();
+  (items as any[]).forEach((item: any) => {
+    const ids = Array.isArray(item.apiPricingIds) ? item.apiPricingIds : [];
+    ids.forEach((id: any) => allApiPricingIds.add(String(id)));
+  });
+
+  const apiPricingsMap = new Map<string, { id: string; name: string }>();
+  if (allApiPricingIds.size > 0) {
+    const apiPricings = await prismaAny.apiPricing.findMany({
+      where: {
+        id: {
+          in: Array.from(allApiPricingIds).map((id) => BigInt(id))
+        }
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+    (apiPricings as any[]).forEach((pricing: any) => {
+      apiPricingsMap.set(pricing.id.toString(), {
+        id: pricing.id.toString(),
+        name: pricing.name
+      });
+    });
+  }
+
+  const data: MiniProgramItem[] = (items as any[]).map((item: any) => {
+    const ids = Array.isArray(item.apiPricingIds) ? item.apiPricingIds : [];
+    const apiPricingIds = ids.map((id: any) => String(id));
+    const apiPricings = apiPricingIds
+      .map((id) => apiPricingsMap.get(id))
+      .filter((p) => p !== undefined) as Array<{ id: string; name: string }>;
+
+    return {
+      id: item.id.toString(),
+      userId: item.userId.toString(),
+      name: item.name,
+      appid: item.appid,
+      isApproved: item.isApproved || false,
+      apiPricingIds,
+      apiPricings,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
+    };
+  });
 
   return { items: data, total, page, perPage };
 }
@@ -94,12 +135,39 @@ export async function getMiniProgramById(
 
   if (!item) return null;
 
+  const ids = Array.isArray((item as any).apiPricingIds)
+    ? (item as any).apiPricingIds
+    : [];
+  const apiPricingIds = ids.map((id: any) => String(id));
+
+  // 获取关联的服务商信息
+  let apiPricings: Array<{ id: string; name: string }> = [];
+  if (apiPricingIds.length > 0) {
+    const apiPricingsData = await prismaAny.apiPricing.findMany({
+      where: {
+        id: {
+          in: apiPricingIds.map((id) => BigInt(id))
+        }
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+    apiPricings = (apiPricingsData as any[]).map((pricing: any) => ({
+      id: pricing.id.toString(),
+      name: pricing.name
+    }));
+  }
+
   return {
     id: item.id.toString(),
     userId: item.userId.toString(),
     name: item.name,
     appid: item.appid,
     isApproved: item.isApproved || false,
+    apiPricingIds,
+    apiPricings,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt
   };
@@ -112,15 +180,38 @@ export async function createMiniProgram(
   userId: string,
   input: UpsertMiniProgramInput
 ): Promise<MiniProgramItem> {
+  const apiPricingIds = input.apiPricingIds || [];
+
   const created = await prismaAny.miniProgramSettings.create({
     data: {
       id: generateIdBigInt(),
       userId: BigInt(userId),
       name: input.name.trim(),
       appid: input.appid.trim(),
-      isApproved: input.isApproved ?? false
+      isApproved: input.isApproved ?? false,
+      apiPricingIds: apiPricingIds.map((id) => BigInt(id))
     }
   });
+
+  // 获取关联的服务商信息
+  let apiPricings: Array<{ id: string; name: string }> = [];
+  if (apiPricingIds.length > 0) {
+    const apiPricingsData = await prismaAny.apiPricing.findMany({
+      where: {
+        id: {
+          in: apiPricingIds.map((id) => BigInt(id))
+        }
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+    apiPricings = (apiPricingsData as any[]).map((pricing: any) => ({
+      id: pricing.id.toString(),
+      name: pricing.name
+    }));
+  }
 
   return {
     id: created.id.toString(),
@@ -128,6 +219,8 @@ export async function createMiniProgram(
     name: created.name,
     appid: created.appid,
     isApproved: created.isApproved || false,
+    apiPricingIds,
+    apiPricings,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt
   };
@@ -140,14 +233,45 @@ export async function updateMiniProgram(
   id: string,
   input: UpsertMiniProgramInput
 ): Promise<MiniProgramItem> {
+  const updateData: any = {
+    name: input.name.trim(),
+    appid: input.appid.trim()
+  };
+
+  if (input.isApproved !== undefined) {
+    updateData.isApproved = input.isApproved;
+  }
+
+  if (input.apiPricingIds !== undefined) {
+    updateData.apiPricingIds = input.apiPricingIds.map((id) => BigInt(id));
+  }
+
   const updated = await prismaAny.miniProgramSettings.update({
     where: { id: BigInt(id) },
-    data: {
-      name: input.name.trim(),
-      appid: input.appid.trim(),
-      ...(input.isApproved !== undefined && { isApproved: input.isApproved })
-    }
+    data: updateData
   });
+
+  const apiPricingIds = input.apiPricingIds || [];
+
+  // 获取关联的服务商信息
+  let apiPricings: Array<{ id: string; name: string }> = [];
+  if (apiPricingIds.length > 0) {
+    const apiPricingsData = await prismaAny.apiPricing.findMany({
+      where: {
+        id: {
+          in: apiPricingIds.map((id) => BigInt(id))
+        }
+      },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+    apiPricings = (apiPricingsData as any[]).map((pricing: any) => ({
+      id: pricing.id.toString(),
+      name: pricing.name
+    }));
+  }
 
   return {
     id: updated.id.toString(),
@@ -155,6 +279,8 @@ export async function updateMiniProgram(
     name: updated.name,
     appid: updated.appid,
     isApproved: updated.isApproved || false,
+    apiPricingIds,
+    apiPricings,
     createdAt: updated.createdAt,
     updatedAt: updated.updatedAt
   };
@@ -202,6 +328,25 @@ export async function approveMiniPrograms(
 }
 
 /**
+ * 批量设置服务商
+ */
+export async function batchSetApiPricings(
+  ids: string[],
+  apiPricingIds: string[]
+): Promise<void> {
+  await prismaAny.miniProgramSettings.updateMany({
+    where: {
+      id: {
+        in: ids.map((id) => BigInt(id))
+      }
+    },
+    data: {
+      apiPricingIds: apiPricingIds.map((id) => BigInt(id))
+    }
+  });
+}
+
+/**
  * 导出小程序配置（用于CSV导出，不限制数量）
  */
 export async function exportMiniProgram(params: {
@@ -235,13 +380,18 @@ export async function exportMiniProgram(params: {
     orderBy: { createdAt: 'desc' }
   });
 
-  return (items as any[]).map((item: any) => ({
-    id: item.id.toString(),
-    userId: item.userId.toString(),
-    name: item.name,
-    appid: item.appid,
-    isApproved: item.isApproved || false,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt
-  }));
+  return (items as any[]).map((item: any) => {
+    const ids = Array.isArray(item.apiPricingIds) ? item.apiPricingIds : [];
+    const apiPricingIds = ids.map((id: any) => String(id));
+    return {
+      id: item.id.toString(),
+      userId: item.userId.toString(),
+      name: item.name,
+      appid: item.appid,
+      isApproved: item.isApproved || false,
+      apiPricingIds,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
+    };
+  });
 }

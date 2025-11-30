@@ -96,10 +96,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, appid, isApproved } = body as {
+    const { name, appid, isApproved, apiPricingIds } = body as {
       name?: string;
       appid?: string;
       isApproved?: boolean;
+      apiPricingIds?: string[];
     };
 
     if (!name || !appid) {
@@ -115,7 +116,8 @@ export async function POST(req: NextRequest) {
     const created = await createMiniProgram(userInfo.userId, {
       name: name.trim(),
       appid: appid.trim(),
-      isApproved: approvedStatus
+      isApproved: approvedStatus,
+      apiPricingIds: apiPricingIds || []
     });
 
     return NextResponse.json(created, { status: 201 });

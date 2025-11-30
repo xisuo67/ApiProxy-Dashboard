@@ -24,6 +24,7 @@ model ApiPricing {
 }
 
 model Setting {
+  
   id          BigInt   @id
   key         String   @unique
   value       String   @db.Text
@@ -87,14 +88,15 @@ model UserPricing {
 }
 
 model MiniProgramSettings {
-  id         BigInt   @id
-  userId     BigInt   // 用户 ID
-  user       User     @relation("UserMiniProgramSettings", fields: [userId], references: [id])
-  name       String   // 小程序名称
-  appid      String   // 小程序 AppID
-  isApproved Boolean  @default(false) // 审核状态
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            BigInt   @id
+  userId        BigInt   // 用户 ID
+  user          User     @relation("UserMiniProgramSettings", fields: [userId], references: [id])
+  name          String   // 小程序名称
+  appid         String   // 小程序 AppID
+  isApproved    Boolean  @default(false) // 审核状态
+  apiPricingIds Json?    @default("[]") // 关联的服务商 ID 列表（JSON 数组）
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])        // 按用户查询
   @@index([name])          // 按名称查询

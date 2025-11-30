@@ -24,6 +24,8 @@ export interface MiniProgramRow {
   name: string;
   appid: string;
   isApproved: boolean;
+  apiPricingIds: string[];
+  apiPricings?: Array<{ id: string; name: string }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +54,8 @@ export function MiniProgramTableClient({
   const [rows, setRows] = useState<MiniProgramRow[]>(
     data.map((item) => ({
       ...item,
+      apiPricingIds: item.apiPricingIds || [],
+      apiPricings: item.apiPricings || [],
       createdAt: new Date(item.createdAt),
       updatedAt: new Date(item.updatedAt)
     }))
@@ -175,6 +179,8 @@ export function MiniProgramTableClient({
     setRows(
       data.map((item) => ({
         ...item,
+        apiPricingIds: item.apiPricingIds || [],
+        apiPricings: item.apiPricings || [],
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt)
       }))
@@ -201,6 +207,7 @@ export function MiniProgramTableClient({
     name: string;
     appid: string;
     isApproved?: boolean;
+    apiPricingIds?: string[];
   }) => {
     setSaving(true);
     try {
@@ -290,6 +297,25 @@ export function MiniProgramTableClient({
     router.refresh();
   };
 
+  const handleBatchSetPricings = async (
+    ids: string[],
+    apiPricingIds: string[]
+  ) => {
+    const res = await fetch('/api/mini-program/batch', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, apiPricingIds })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.message || '批量设置服务商失败');
+    }
+
+    toast.success(`成功为 ${ids.length} 个小程序配置设置服务商`);
+    router.refresh();
+  };
+
   const handleExport = async () => {
     try {
       const params = new URLSearchParams({
@@ -361,6 +387,7 @@ export function MiniProgramTableClient({
             isAdmin={isAdmin}
             onBatchDelete={handleBatchDelete}
             onBatchApprove={handleBatchApprove}
+            onBatchSetPricings={handleBatchSetPricings}
           />
         }
       >

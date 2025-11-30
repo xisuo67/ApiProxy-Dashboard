@@ -70,6 +70,26 @@ export function buildMiniProgramColumns({
       enableColumnFilter: false
     },
     {
+      id: 'apiPricings',
+      header: '关联服务商',
+      cell: ({ row }) => {
+        const apiPricings = row.original.apiPricings || [];
+        if (apiPricings.length === 0) {
+          return <span className='text-muted-foreground text-sm'>-</span>;
+        }
+        return (
+          <div className='flex flex-wrap gap-1'>
+            {apiPricings.map((pricing) => (
+              <Badge key={pricing.id} variant='outline' className='text-xs'>
+                {pricing.name}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
+      enableColumnFilter: false
+    },
+    {
       id: 'isApproved',
       accessorKey: 'isApproved',
       header: ({ column }: { column: Column<MiniProgramRow, unknown> }) => (

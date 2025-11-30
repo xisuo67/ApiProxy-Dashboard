@@ -1,4 +1,8 @@
-import { deleteMiniPrograms, approveMiniPrograms } from '@/lib/mini-program';
+import {
+  deleteMiniPrograms,
+  approveMiniPrograms,
+  batchSetApiPricings
+} from '@/lib/mini-program';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -103,5 +107,59 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     console.error('[MINI_PROGRAM_BATCH_APPROVE_ERROR]', error);
     return NextResponse.json({ message: '批量审核失败' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const userInfo = await getCurrentUserInfo();
+    if (!userInfo) {
+      return NextResponse.json({ message: '未登录' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { ids, apiPricingIds } = body as {
+      ids?: string[];
+      apiPricingIds?: string[];
+    };
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { message: '缺少要设置的ID列表' },
+        { status: 400 }
+      );
+    }
+
+    if (!apiPricingIds || !Array.isArray(apiPricingIds)) {
+      return NextResponse.json(
+        { message: '缺少服务商ID列表' },
+        { status: 400 }
+      );
+    }
+
+    // 权限检查：非Admin用户只能设置自己的数据
+    if (!userInfo.isAdmin) {
+      for (const id of ids) {
+        const item = await getMiniProgramById(id);
+        if (!item || item.userId !== userInfo.userId) {
+          return NextResponse.json(
+            { message: '无权限设置部分或全部数据' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    await batchSetApiPricings(ids, apiPricingIds);
+    return NextResponse.json(
+      { message: '批量设置服务商成功' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('[MINI_PROGRAM_BATCH_SET_PRICINGS_ERROR]', error);
+    return NextResponse.json(
+      { message: '批量设置服务商失败' },
+      { status: 500 }
+    );
   }
 }

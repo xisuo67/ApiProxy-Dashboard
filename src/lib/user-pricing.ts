@@ -33,7 +33,8 @@ export async function getUserPricings(userId: string) {
           name: true,
           host: true,
           api: true,
-          price: true
+          price: true,
+          isEnabled: true
         }
       }
     },
@@ -50,7 +51,10 @@ export async function getUserPricings(userId: string) {
       host: item.apiPricing.host,
       api: item.apiPricing.api,
       price: Number(item.apiPricing.price),
-      isEnabled: item.apiPricing.isEnabled ?? true
+      isEnabled:
+        item.apiPricing.isEnabled !== undefined
+          ? item.apiPricing.isEnabled
+          : true
     },
     createdAt: item.createdAt
   }));

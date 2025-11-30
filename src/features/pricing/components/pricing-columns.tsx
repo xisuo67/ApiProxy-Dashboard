@@ -64,8 +64,8 @@ export function buildPricingColumns({
       accessorKey: 'price',
       header: '价格（每次调用）',
       cell: ({ row }) => (
-        <span className='font-semibold text-emerald-600'>
-          {row.original.price.toFixed(4)}
+        <span className='font-semibold text-red-600'>
+          {row.original.price.toFixed(2)}
         </span>
       )
     }
@@ -99,7 +99,12 @@ export function buildPricingColumns({
       cell: ({ row }) => {
         const isEnabled = row.original.isEnabled;
         return (
-          <Badge variant={isEnabled ? 'default' : 'secondary'}>
+          <Badge
+            variant={isEnabled ? 'default' : 'destructive'}
+            className={`${
+              isEnabled ? 'bg-green-500 text-white hover:bg-green-600' : ''
+            }`}
+          >
             {isEnabled ? '已启用' : '已禁用'}
           </Badge>
         );

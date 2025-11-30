@@ -72,7 +72,7 @@ export function MiniProgramFormDialog({
     if (open) {
       loadApiPricingOptions();
     }
-  }, [open]);
+  }, [open, editingRow]);
 
   const loadApiPricingOptions = async () => {
     setLoadingOptions(true);
@@ -90,6 +90,15 @@ export function MiniProgramFormDialog({
           name: item.apiPricing.name
         }));
       setApiPricingOptions(options);
+
+      // 如果正在编辑，过滤掉禁用的服务商ID
+      if (editingRow) {
+        const enabledIds = new Set(options.map((opt) => opt.id));
+        const filteredIds = (editingRow.apiPricingIds || []).filter(
+          (id: string) => enabledIds.has(id)
+        );
+        setFormApiPricingIds(filteredIds);
+      }
     } catch (error) {
       console.error('加载服务商列表失败:', error);
     } finally {
@@ -102,6 +111,7 @@ export function MiniProgramFormDialog({
       setFormName(editingRow.name);
       setFormAppid(editingRow.appid);
       setFormIsApproved(editingRow.isApproved);
+      // 初始设置时，先设置所有ID，loadApiPricingOptions 会过滤掉禁用的
       setFormApiPricingIds(editingRow.apiPricingIds || []);
     } else {
       setFormName('');
@@ -116,11 +126,17 @@ export function MiniProgramFormDialog({
       return;
     }
 
+    // 过滤掉禁用的服务商ID（只保留在 apiPricingOptions 中的ID）
+    const enabledPricingIds = new Set(apiPricingOptions.map((opt) => opt.id));
+    const filteredApiPricingIds = formApiPricingIds.filter((id: string) =>
+      enabledPricingIds.has(id)
+    );
+
     await onSave({
       name: formName.trim(),
       appid: formAppid.trim(),
       ...(isAdmin && { isApproved: formIsApproved }),
-      apiPricingIds: formApiPricingIds
+      apiPricingIds: filteredApiPricingIds
     });
 
     if (!saving) {

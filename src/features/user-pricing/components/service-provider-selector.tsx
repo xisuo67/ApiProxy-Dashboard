@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -180,9 +181,23 @@ export function ServiceProviderSelector() {
               <Card key={item.id} className='relative'>
                 <CardHeader>
                   <div className='flex items-start justify-between'>
-                    <CardTitle className='text-base'>
-                      {item.apiPricing.name}
-                    </CardTitle>
+                    <div className='flex items-center gap-2'>
+                      <CardTitle className='text-base'>
+                        {item.apiPricing.name}
+                      </CardTitle>
+                      <Badge
+                        variant={
+                          item.apiPricing.isEnabled ? 'default' : 'destructive'
+                        }
+                        className={`text-xs ${
+                          item.apiPricing.isEnabled
+                            ? 'bg-green-500 text-white hover:bg-green-600'
+                            : ''
+                        }`}
+                      >
+                        {item.apiPricing.isEnabled ? '已启用' : '已禁用'}
+                      </Badge>
+                    </div>
                     <Button
                       size='sm'
                       variant='ghost'
@@ -196,7 +211,7 @@ export function ServiceProviderSelector() {
                 <CardContent className='space-y-2'>
                   <div className='text-muted-foreground text-sm'>
                     <span className='font-medium'>价格：</span>
-                    <span className='text-emerald-600'>
+                    <span className='text-red-600'>
                       {item.apiPricing.price.toFixed(2)} 元/次
                     </span>
                   </div>

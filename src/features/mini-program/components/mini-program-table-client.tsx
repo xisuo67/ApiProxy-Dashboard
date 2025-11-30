@@ -25,7 +25,7 @@ export interface MiniProgramRow {
   appid: string;
   isApproved: boolean;
   apiPricingIds: string[];
-  apiPricings?: Array<{ id: string; name: string }>;
+  apiPricings?: Array<{ id: string; name: string; isEnabled: boolean }>;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -40,7 +40,10 @@ export function buildMiniProgramColumns({
         />
       ),
       enableSorting: false,
-      enableHiding: false
+      enableHiding: false,
+      size: 40,
+      minSize: 40,
+      maxSize: 40
     },
     {
       id: 'name',
@@ -79,11 +82,23 @@ export function buildMiniProgramColumns({
         }
         return (
           <div className='flex flex-wrap gap-1'>
-            {apiPricings.map((pricing) => (
-              <Badge key={pricing.id} variant='outline' className='text-xs'>
-                {pricing.name}
-              </Badge>
-            ))}
+            {apiPricings.map((pricing) => {
+              const isEnabled = pricing.isEnabled ?? true;
+              return (
+                <Badge
+                  key={pricing.id}
+                  variant={isEnabled ? 'default' : 'destructive'}
+                  className={`text-xs ${
+                    isEnabled
+                      ? 'bg-green-500 text-white hover:bg-green-600'
+                      : ''
+                  }`}
+                >
+                  {pricing.name}
+                  {!isEnabled && <span className='ml-1 text-xs'>(已禁用)</span>}
+                </Badge>
+              );
+            })}
           </div>
         );
       },

@@ -390,6 +390,7 @@ export function MiniProgramTableClient({
             onBatchSetPricings={handleBatchSetPricings}
           />
         }
+        tableContainerClassName='!min-h-0 h-auto'
       >
         <DataTableToolbar
           table={table}

@@ -44,10 +44,18 @@ export async function listMiniProgram(params: ListMiniProgramParams) {
   const where: any = {};
 
   // 权限过滤：非Admin用户只能看自己的数据
-  if (!params.isAdmin && params.userId) {
-    where.userId = BigInt(params.userId);
-  }
   // Admin用户不限制 userId，可以看所有数据
+  if (params.isAdmin) {
+    // Admin用户：不添加 userId 过滤，查询所有数据
+  } else {
+    // 非Admin用户：只能看自己的数据
+    if (params.userId) {
+      where.userId = BigInt(params.userId);
+    } else {
+      // 非Admin用户但没有userId，返回空结果
+      return { items: [], total: 0, page, perPage };
+    }
+  }
 
   // 搜索功能：支持名称和 appid 搜索
   if (params.search) {
@@ -373,9 +381,18 @@ export async function exportMiniProgram(params: {
 }): Promise<MiniProgramItem[]> {
   const where: any = {};
 
-  // 权限过滤
-  if (!params.isAdmin && params.userId) {
-    where.userId = BigInt(params.userId);
+  // 权限过滤：非Admin用户只能看自己的数据
+  // Admin用户不限制 userId，可以看所有数据
+  if (params.isAdmin) {
+    // Admin用户：不添加 userId 过滤，查询所有数据
+  } else {
+    // 非Admin用户：只能看自己的数据
+    if (params.userId) {
+      where.userId = BigInt(params.userId);
+    } else {
+      // 非Admin用户但没有userId，返回空结果
+      return [];
+    }
   }
 
   // 搜索功能

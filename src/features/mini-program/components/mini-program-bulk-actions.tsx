@@ -83,12 +83,13 @@ export function MiniProgramBulkActions({
         throw new Error('获取服务商列表失败');
       }
       const data = await res.json();
-      const options: ApiPricingOption[] = (data.items || []).map(
-        (item: any) => ({
+      // 只显示启用的服务商
+      const options: ApiPricingOption[] = (data.items || [])
+        .filter((item: any) => item.apiPricing?.isEnabled !== false)
+        .map((item: any) => ({
           id: item.apiPricingId,
           name: item.apiPricing.name
-        })
-      );
+        }));
       setApiPricingOptions(options);
     } catch (error) {
       console.error('加载服务商列表失败:', error);

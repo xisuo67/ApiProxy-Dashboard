@@ -16,6 +16,7 @@ model ApiPricing {
   apiKey     String? // API 密钥
   actualHost String? // 实际主机地址
   actualApi  String? // 实际接口地址
+  isEnabled  Boolean @default(true) // 是否启用
 
   // 与用户的多对多关系
   userPricings UserPricing[] @relation("ApiPricingUserPricings")

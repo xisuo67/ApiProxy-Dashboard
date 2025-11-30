@@ -10,6 +10,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { IconPlus, IconEye, IconEyeOff } from '@tabler/icons-react';
 import { AlertModal } from '@/components/modal/alert-modal';
@@ -51,6 +53,7 @@ export function PricingTableClient({
   const [formApiKey, setFormApiKey] = useState('');
   const [formActualHost, setFormActualHost] = useState('');
   const [formActualApi, setFormActualApi] = useState('');
+  const [formIsEnabled, setFormIsEnabled] = useState(true);
   const [showApiKey, setShowApiKey] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -109,6 +112,7 @@ export function PricingTableClient({
     setFormApiKey('');
     setFormActualHost('');
     setFormActualApi('');
+    setFormIsEnabled(true);
     setModalOpen(true);
   };
 
@@ -125,6 +129,7 @@ export function PricingTableClient({
     setFormPrice(row.price.toString());
     setFormActualHost(row.actualHost || '');
     setFormActualApi(row.actualApi || '');
+    setFormIsEnabled(row.isEnabled ?? true);
 
     // 通过单独的 API 获取完整信息（包括 apiKey），避免列表查询时泄露敏感信息
     try {
@@ -132,6 +137,7 @@ export function PricingTableClient({
       if (res.ok) {
         const fullData = await res.json();
         setFormApiKey(fullData.apiKey || '');
+        setFormIsEnabled(fullData.isEnabled ?? true);
       } else {
         // 如果获取失败，使用空值
         setFormApiKey('');
@@ -181,7 +187,8 @@ export function PricingTableClient({
           price: priceNumber,
           apiKey: formApiKey.trim() || null,
           actualHost: formActualHost.trim() || null,
-          actualApi: formActualApi.trim() || null
+          actualApi: formActualApi.trim() || null,
+          isEnabled: formIsEnabled
         })
       });
 
@@ -361,6 +368,17 @@ export function PricingTableClient({
                       )}
                     </button>
                   </div>
+                </div>
+                <div className='flex items-center justify-between space-x-2'>
+                  <Label htmlFor='isEnabled' className='flex-1'>
+                    是否启用
+                  </Label>
+                  <Switch
+                    id='isEnabled'
+                    checked={formIsEnabled}
+                    onCheckedChange={setFormIsEnabled}
+                    disabled={saving}
+                  />
                 </div>
               </>
             )}

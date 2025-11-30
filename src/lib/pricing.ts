@@ -10,6 +10,7 @@ export interface ApiPricingItem {
   apiKey: string | null;
   actualHost: string | null;
   actualApi: string | null;
+  isEnabled: boolean;
 }
 
 export interface ListApiPricingParams {
@@ -60,7 +61,8 @@ export async function listApiPricing(params: ListApiPricingParams) {
     price: Number(item.price),
     apiKey: null, // 列表查询不返回敏感信息
     actualHost: item.actualHost ?? null,
-    actualApi: item.actualApi ?? null
+    actualApi: item.actualApi ?? null,
+    isEnabled: item.isEnabled ?? true
   }));
 
   return { items: data, total, page, perPage };
@@ -74,6 +76,7 @@ export interface UpsertApiPricingInput {
   apiKey?: string | null;
   actualHost?: string | null;
   actualApi?: string | null;
+  isEnabled?: boolean;
 }
 
 export async function createApiPricing(input: UpsertApiPricingInput) {
@@ -86,7 +89,8 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
       price: input.price,
       apiKey: input.apiKey ?? null,
       actualHost: input.actualHost ?? null,
-      actualApi: input.actualApi ?? null
+      actualApi: input.actualApi ?? null,
+      isEnabled: input.isEnabled ?? true
     }
   });
 
@@ -98,7 +102,8 @@ export async function createApiPricing(input: UpsertApiPricingInput) {
     price: Number(created.price),
     apiKey: created.apiKey ?? null,
     actualHost: created.actualHost ?? null,
-    actualApi: created.actualApi ?? null
+    actualApi: created.actualApi ?? null,
+    isEnabled: created.isEnabled ?? true
   } as ApiPricingItem;
 }
 
@@ -115,7 +120,8 @@ export async function updateApiPricing(
       price: input.price,
       apiKey: input.apiKey ?? null,
       actualHost: input.actualHost ?? null,
-      actualApi: input.actualApi ?? null
+      actualApi: input.actualApi ?? null,
+      ...(input.isEnabled !== undefined && { isEnabled: input.isEnabled })
     }
   });
 
@@ -127,7 +133,8 @@ export async function updateApiPricing(
     price: Number(updated.price),
     apiKey: updated.apiKey ?? null,
     actualHost: updated.actualHost ?? null,
-    actualApi: updated.actualApi ?? null
+    actualApi: updated.actualApi ?? null,
+    isEnabled: updated.isEnabled ?? true
   } as ApiPricingItem;
 }
 
@@ -148,12 +155,67 @@ export async function getApiPricingById(
     price: Number(item.price),
     apiKey: item.apiKey ?? null,
     actualHost: item.actualHost ?? null,
-    actualApi: item.actualApi ?? null
+    actualApi: item.actualApi ?? null,
+    isEnabled: item.isEnabled ?? true
   } as ApiPricingItem;
 }
 
 export async function deleteApiPricing(id: string) {
-  await prismaAny.apiPricing.delete({
-    where: { id: BigInt(id) }
+  const apiPricingId = BigInt(id);
+
+  // 检查是否有 UserPricing 关联
+  const userPricingCount = await prismaAny.userPricing.count({
+    where: { apiPricingId }
   });
+
+  if (userPricingCount > 0) {
+    throw new Error(
+      `无法删除：该服务商已被 ${userPricingCount} 个用户关联，请先解除关联后再删除`
+    );
+  }
+
+  // 检查是否有 MiniProgramSettings 关联（通过 apiPricingIds JSON 字段）
+  const miniPrograms = await prismaAny.miniProgramSettings.findMany({
+    where: {},
+    select: { id: true, apiPricingIds: true }
+  });
+
+  const hasMiniProgramAssociation = miniPrograms.some((mp: any) => {
+    const ids = Array.isArray(mp.apiPricingIds) ? mp.apiPricingIds : [];
+    return ids.some(
+      (pid: any) => BigInt(pid).toString() === apiPricingId.toString()
+    );
+  });
+
+  if (hasMiniProgramAssociation) {
+    throw new Error(
+      '无法删除：该服务商已被小程序配置关联，请先在小程序管理中解除关联后再删除'
+    );
+  }
+
+  await prismaAny.apiPricing.delete({
+    where: { id: apiPricingId }
+  });
+}
+
+/**
+ * 获取所有启用的服务商（用于选择服务商）
+ */
+export async function listEnabledApiPricing(): Promise<ApiPricingItem[]> {
+  const items = await prismaAny.apiPricing.findMany({
+    where: { isEnabled: true },
+    orderBy: { id: 'desc' }
+  });
+
+  return (items as any[]).map((item: any) => ({
+    id: item.id.toString(),
+    name: item.name || '',
+    host: item.host,
+    api: item.api,
+    price: Number(item.price),
+    apiKey: null,
+    actualHost: item.actualHost ?? null,
+    actualApi: item.actualApi ?? null,
+    isEnabled: true
+  }));
 }

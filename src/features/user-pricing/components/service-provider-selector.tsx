@@ -57,7 +57,7 @@ export function ServiceProviderSelector() {
     }
   };
 
-  // 加载所有可用的服务商（用于下拉框）
+  // 加载所有可用的服务商（用于下拉框）- 只加载启用的
   const loadPricingOptions = async () => {
     try {
       const res = await fetch('/api/pricing?perPage=1000');
@@ -65,11 +65,14 @@ export function ServiceProviderSelector() {
         throw new Error('获取服务商选项失败');
       }
       const data = await res.json();
+      // 只显示启用的服务商
       setPricingOptions(
-        (data.items || []).map((item: any) => ({
-          id: item.id,
-          name: item.name
-        }))
+        (data.items || [])
+          .filter((item: any) => item.isEnabled !== false)
+          .map((item: any) => ({
+            id: item.id,
+            name: item.name
+          }))
       );
     } catch (error: any) {
       toast.error(error.message || '获取服务商选项失败');

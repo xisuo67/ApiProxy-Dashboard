@@ -11,6 +11,7 @@ export interface UserPricingItem {
     host: string;
     api: string;
     price: number;
+    isEnabled: boolean;
   };
   createdAt: Date;
 }
@@ -48,7 +49,8 @@ export async function getUserPricings(userId: string) {
       name: item.apiPricing.name || '',
       host: item.apiPricing.host,
       api: item.apiPricing.api,
-      price: Number(item.apiPricing.price)
+      price: Number(item.apiPricing.price),
+      isEnabled: item.apiPricing.isEnabled ?? true
     },
     createdAt: item.createdAt
   }));

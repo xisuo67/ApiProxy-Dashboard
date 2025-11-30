@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ColumnDef } from '@tanstack/react-table';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
@@ -11,6 +12,7 @@ export interface PricingRow {
   apiKey: string | null;
   actualHost: string | null;
   actualApi: string | null;
+  isEnabled: boolean;
 }
 
 interface BuildPricingColumnsParams {
@@ -90,6 +92,18 @@ export function buildPricingColumns({
           {row.original.actualApi || '-'}
         </span>
       )
+    },
+    {
+      accessorKey: 'isEnabled',
+      header: '是否启用',
+      cell: ({ row }) => {
+        const isEnabled = row.original.isEnabled;
+        return (
+          <Badge variant={isEnabled ? 'default' : 'secondary'}>
+            {isEnabled ? '已启用' : '已禁用'}
+          </Badge>
+        );
+      }
     },
     {
       id: 'actions',

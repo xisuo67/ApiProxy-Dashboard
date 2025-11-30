@@ -67,15 +67,17 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, host, api, price, apiKey, actualHost, actualApi } = body as {
-      name?: string;
-      host?: string;
-      api?: string;
-      price?: number;
-      apiKey?: string | null;
-      actualHost?: string | null;
-      actualApi?: string | null;
-    };
+    const { name, host, api, price, apiKey, actualHost, actualApi, isEnabled } =
+      body as {
+        name?: string;
+        host?: string;
+        api?: string;
+        price?: number;
+        apiKey?: string | null;
+        actualHost?: string | null;
+        actualApi?: string | null;
+        isEnabled?: boolean;
+      };
 
     if (!name || !host || !api || price == null) {
       return NextResponse.json(
@@ -91,7 +93,8 @@ export async function PUT(req: NextRequest) {
       price: Number(price),
       apiKey: apiKey ? apiKey.trim() : null,
       actualHost: actualHost ? actualHost.trim() : null,
-      actualApi: actualApi ? actualApi.trim() : null
+      actualApi: actualApi ? actualApi.trim() : null,
+      isEnabled: isEnabled ?? true
     });
 
     return NextResponse.json(updated, { status: 200 });
@@ -119,8 +122,14 @@ export async function DELETE(req: NextRequest) {
         status: 200
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PRICING_DELETE_ERROR]', error);
-    return NextResponse.json({ message: '删除定价失败' }, { status: 500 });
+
+    // 如果是业务逻辑错误（有关联记录），返回 400 状态码和具体错误信息
+    if (error.message && error.message.includes('无法删除')) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ message: '删除服务商失败' }, { status: 500 });
   }
 }

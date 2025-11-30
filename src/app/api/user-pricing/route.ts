@@ -58,10 +58,16 @@ export async function POST(req: NextRequest) {
     const created = await createUserPricing(userId, apiPricingId);
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
-    console.error('[USER_PRICING_POST_ERROR]', error);
-    return NextResponse.json(
-      { message: error.message || '创建用户服务商关联失败' },
-      { status: 500 }
-    );
+    console.error('[USER_PRICING_POST_ERROR]', {
+      userId,
+      apiPricingId,
+      error: error.message,
+      stack: error.stack
+    });
+    // 不暴露内部错误信息，只返回友好的错误提示
+    const userMessage = error.message?.includes('已关联')
+      ? error.message // 业务逻辑错误（如重复关联）可以显示
+      : '创建服务商关联失败，请稍后重试';
+    return NextResponse.json({ message: userMessage }, { status: 500 });
   }
 }

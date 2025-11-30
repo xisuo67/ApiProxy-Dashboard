@@ -52,11 +52,18 @@ export async function DELETE(req: NextRequest) {
 
     await deleteUserPricing(id);
     return NextResponse.json({ message: '删除成功' }, { status: 200 });
-  } catch (error) {
-    console.error('[USER_PRICING_DELETE_ERROR]', error);
-    return NextResponse.json(
-      { message: '删除用户服务商关联失败' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('[USER_PRICING_DELETE_ERROR]', {
+      id,
+      userId,
+      error: error.message,
+      stack: error.stack
+    });
+    // 不暴露内部错误信息，只返回友好的错误提示
+    const userMessage =
+      error.message?.includes('不存在') || error.message?.includes('无权限')
+        ? error.message // 业务逻辑错误（如不存在、无权限）可以显示
+        : '删除服务商关联失败，请稍后重试';
+    return NextResponse.json({ message: userMessage }, { status: 500 });
   }
 }

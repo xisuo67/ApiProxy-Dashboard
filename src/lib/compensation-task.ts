@@ -128,10 +128,12 @@ export async function processCompensationTask(
   const cost = Number(task.cost);
   const currentBalance = Number(task.user.balance);
   if (currentBalance < cost) {
+    // 余额不足：不视为终态失败，保持 pending 状态，仅记录错误信息
+    // 这样在用户后续充值后，补偿任务仍会被再次尝试，确保最终一致性
     await prismaAny.compensationTask.update({
       where: { id: BigInt(taskId) },
       data: {
-        status: 'failed',
+        status: 'pending',
         errorMessage: '余额不足'
       }
     });
@@ -176,7 +178,9 @@ export async function processCompensationTask(
               requestApi: task.requestApi,
               requestBody: task.requestBody || '',
               responseBody: task.responseBody || '',
-              cost
+              cost,
+              // 日志时间使用原始补偿任务创建时间，保证对账日期与原始请求一致
+              createdAt: task.createdAt
             }
           });
         } catch (logError) {

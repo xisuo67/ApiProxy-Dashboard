@@ -3,11 +3,44 @@
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
 import type { Column, ColumnDef } from '@tanstack/react-table';
 import type { CompensationTaskListItem } from '@/lib/compensation-task-list';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export type CompensationTaskRow = CompensationTaskListItem;
 
-export function buildCompensationTaskColumns(): ColumnDef<CompensationTaskRow>[] {
+interface BuildColumnsParams {
+  onReset: (row: CompensationTaskRow) => void;
+}
+
+export function buildCompensationTaskColumns({
+  onReset
+}: BuildColumnsParams): ColumnDef<CompensationTaskRow>[] {
   return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label='Select all'
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label='Select row'
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 40,
+      minSize: 40,
+      maxSize: 40
+    },
     {
       id: 'id',
       accessorKey: 'id',
@@ -111,6 +144,20 @@ export function buildCompensationTaskColumns(): ColumnDef<CompensationTaskRow>[]
       )
     },
     {
+      id: 'errorMessage',
+      accessorKey: 'errorMessage',
+      header: ({
+        column
+      }: {
+        column: Column<CompensationTaskRow, unknown>;
+      }) => <DataTableColumnHeader column={column} title='最后错误原因' />,
+      cell: ({ row }) => (
+        <span className='text-muted-foreground line-clamp-2 max-w-xs text-xs'>
+          {row.original.errorMessage || '-'}
+        </span>
+      )
+    },
+    {
       id: 'createdAt',
       accessorKey: 'createdAt',
       header: ({
@@ -140,6 +187,25 @@ export function buildCompensationTaskColumns(): ColumnDef<CompensationTaskRow>[]
         ) : (
           <span className='text-muted-foreground text-xs'>-</span>
         )
+    },
+    {
+      id: 'actions',
+      header: '操作',
+      cell: ({ row }) => {
+        if (row.original.status !== 'failed') {
+          return <span className='text-muted-foreground text-xs'>-</span>;
+        }
+        return (
+          <Button
+            size='sm'
+            variant='outline'
+            className='h-7 px-2 text-xs'
+            onClick={() => onReset(row.original)}
+          >
+            重置为待处理
+          </Button>
+        );
+      }
     }
   ];
 }

@@ -80,7 +80,7 @@ export function MiniProgramTableClient({
   );
   const [isApprovedFilter, setIsApprovedFilter] = useQueryState(
     'isApproved',
-    parseAsString.withDefault(initialIsApproved || null)
+    parseAsString.withDefault(initialIsApproved ?? '')
   );
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize || 1));

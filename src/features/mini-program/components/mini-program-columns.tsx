@@ -166,9 +166,7 @@ export function buildMiniProgramColumns({
           </div>
         );
       },
-      meta: {
-        align: 'center'
-      }
+      meta: {}
     }
   ];
 }

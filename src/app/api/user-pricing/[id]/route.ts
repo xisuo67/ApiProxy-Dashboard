@@ -25,13 +25,16 @@ function getIdFromRequest(req: NextRequest): string {
 }
 
 export async function DELETE(req: NextRequest) {
+  let userId: string | null = null;
+  let id: string | null = null;
+
   try {
-    const userId = await getCurrentUserId();
+    userId = await getCurrentUserId();
     if (!userId) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
-    const id = getIdFromRequest(req);
+    id = getIdFromRequest(req);
     if (!id) {
       return NextResponse.json({ message: '缺少关联 ID' }, { status: 400 });
     }
@@ -54,7 +57,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ message: '删除成功' }, { status: 200 });
   } catch (error: any) {
     console.error('[USER_PRICING_DELETE_ERROR]', {
-      id,
+      id: id ?? getIdFromRequest(req),
       userId,
       error: error.message,
       stack: error.stack

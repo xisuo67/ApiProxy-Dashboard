@@ -37,16 +37,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  let userId: string | null = null;
+  let apiPricingId: string | undefined;
+
   try {
-    const userId = await getCurrentUserId();
+    userId = await getCurrentUserId();
     if (!userId) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
     const body = await req.json();
-    const { apiPricingId } = body as {
+    const parsed = body as {
       apiPricingId?: string;
     };
+    apiPricingId = parsed.apiPricingId;
 
     if (!apiPricingId) {
       return NextResponse.json(

@@ -11,6 +11,8 @@ export interface NavItem {
   description?: string;
   isActive?: boolean;
   items?: NavItem[];
+  // 可选：仅管理员可见
+  onlyAdmin?: boolean;
 }
 
 export interface NavItemWithChildren extends NavItem {

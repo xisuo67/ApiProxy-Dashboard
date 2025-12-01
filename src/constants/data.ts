@@ -19,18 +19,11 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: '补偿任务',
-    url: '/dashboard/compensation-tasks',
-    icon: 'billing',
-    shortcut: ['c', 't'],
-    isActive: false,
-    items: []
-  },
-  {
     title: '账号管理',
     url: '#', // Placeholder as there is no direct link for the parent
     icon: 'billing',
     isActive: true,
+    onlyAdmin: true,
     items: [
       {
         title: '个人信息',
@@ -53,12 +46,25 @@ export const navItems: NavItem[] = [
     ]
   },
   {
-    title: '系统设置',
-    url: '/dashboard/settings',
+    title: '系统管理',
+    url: '#',
     icon: 'settings',
-    shortcut: ['s', 's'],
     isActive: false,
-    items: [] // No child items
+    onlyAdmin: true,
+    items: [
+      {
+        title: '系统设置',
+        url: '/dashboard/settings',
+        icon: 'settings',
+        shortcut: ['s', 's']
+      },
+      {
+        title: '补偿任务',
+        url: '/dashboard/compensation-tasks',
+        icon: 'warning',
+        shortcut: ['c', 't']
+      }
+    ]
   }
 ];
 

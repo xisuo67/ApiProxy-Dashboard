@@ -96,12 +96,9 @@ export default function AppSidebar() {
   const isAdmin = localRole === 'Admin';
 
   const visibleNavItems = navItems.filter((item) => {
-    // 非管理员隐藏仅管理员可见的菜单
-    if (!isAdmin) {
-      // 补偿任务管理仅管理员可见
-      if (item.url === '/dashboard/compensation-tasks') {
-        return false;
-      }
+    // 仅管理员可见的菜单
+    if (item.onlyAdmin && !isAdmin) {
+      return false;
     }
     return true;
   });

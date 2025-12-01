@@ -3,6 +3,7 @@ import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import PricingViewPage from '@/features/pricing/components/pricing-view-page';
+import { RechargePanel } from '@/features/billing/components/recharge-panel';
 import { ServiceProviderSelector } from '@/features/user-pricing/components/service-provider-selector';
 import RequestLogViewPage from '@/features/api-request-log/components/request-log-view-page';
 import MiniProgramViewPage from '@/features/mini-program/components/mini-program-view-page';
@@ -32,7 +33,7 @@ export default async function Page(props: PageProps) {
   searchParamsCache.parse(searchParams);
 
   return (
-    <PageContainer scrollable={false}>
+    <PageContainer scrollable={true}>
       <div className='flex flex-1 flex-col space-y-4'>
         <div className='flex items-start justify-between'>
           <Heading
@@ -41,7 +42,7 @@ export default async function Page(props: PageProps) {
           />
         </div>
         <Separator />
-        <Tabs defaultValue='pricing' className='flex flex-1 flex-col'>
+        <Tabs defaultValue='recharge' className='flex flex-1 flex-col'>
           <TabsList className='w-full justify-start'>
             <TabsTrigger value='recharge'>充值</TabsTrigger>
             <TabsTrigger value='pricing'>服务商定价</TabsTrigger>
@@ -52,9 +53,7 @@ export default async function Page(props: PageProps) {
           </TabsList>
           <div className='mt-4 flex-1'>
             <TabsContent value='recharge'>
-              <div className='text-muted-foreground text-sm'>
-                充值功能暂未实现，后续可在此处集成支付与充值相关流程。
-              </div>
+              <RechargePanel />
             </TabsContent>
             <TabsContent value='pricing'>
               <Suspense

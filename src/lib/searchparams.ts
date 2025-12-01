@@ -15,7 +15,8 @@ export const searchParams = {
   key: parseAsString,
   startDate: parseAsString,
   endDate: parseAsString,
-  isApproved: parseAsString // 审核状态筛选
+  isApproved: parseAsString, // 审核状态筛选
+  status: parseAsString
   // advanced filter
   // filters: getFiltersStateParser().withDefault([]),
   // joinOperator: parseAsStringEnum(['and', 'or']).withDefault('and')

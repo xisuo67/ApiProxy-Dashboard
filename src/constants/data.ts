@@ -19,6 +19,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: '补偿任务',
+    url: '/dashboard/compensation-tasks',
+    icon: 'billing',
+    shortcut: ['c', 't'],
+    isActive: false,
+    items: []
+  },
+  {
     title: '账号管理',
     url: '#', // Placeholder as there is no direct link for the parent
     icon: 'billing',

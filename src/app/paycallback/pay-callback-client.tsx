@@ -117,10 +117,34 @@ export function PayCallbackClient({ orderId }: PayCallbackClientProps) {
   };
 
   // 复制订单号
-  const handleCopyOrderId = () => {
-    if (orderData?.id) {
-      navigator.clipboard.writeText(orderData.id);
-      toast.success('订单号已复制');
+  const handleCopyOrderId = async () => {
+    if (!orderData?.id) return;
+
+    try {
+      // 检查浏览器是否支持 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(orderData.id);
+        toast.success('订单号已复制');
+      } else {
+        // 降级方案：使用传统的复制方法
+        const textArea = document.createElement('textarea');
+        textArea.value = orderData.id;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success('订单号已复制');
+        } catch (err) {
+          toast.error('复制失败，请手动复制');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (error) {
+      console.error('[COPY_ORDER_ID_ERROR]', error);
+      toast.error('复制失败，请手动复制');
     }
   };
 

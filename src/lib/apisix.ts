@@ -238,3 +238,37 @@ export async function getNextjsServiceUrl(): Promise<string> {
     'Next.js 服务地址未配置，请在系统设置中配置 NextjsServiceUrl'
   );
 }
+
+/**
+ * 获取应用地址（用于构建支付回调 URL 等）
+ * 使用 NextjsServiceUrl 配置，避免重复配置
+ */
+export async function getAppUrl(): Promise<string> {
+  // 从 settings 表获取 NextjsServiceUrl 配置
+  const setting = await prisma.setting.findUnique({
+    where: { key: 'NextjsServiceUrl' }
+  });
+
+  if (setting?.value) {
+    return setting.value;
+  }
+
+  // 如果 settings 表中没有，尝试从环境变量获取
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Vercel 环境
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // 默认值（开发环境）
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+
+  console.error('[APP_URL_ERROR]', 'NextjsServiceUrl 未配置');
+  throw new Error('应用地址未配置，请在系统设置中配置 NextjsServiceUrl');
+}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -18,10 +19,25 @@ import { IconBrandStripe } from '@tabler/icons-react';
 const PRESET_AMOUNTS = [10, 50, 100];
 
 export function RechargePanel() {
+  const searchParams = useSearchParams();
   const [payMethod, setPayMethod] = useState<'stripe'>('stripe');
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+
+  // 处理支付成功/取消回调
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    const orderId = searchParams.get('orderId');
+
+    if (success === 'true' && orderId) {
+      toast.success('充值成功！余额已更新');
+      // 可以在这里刷新余额数据
+    } else if (canceled === 'true') {
+      toast.info('支付已取消');
+    }
+  }, [searchParams]);
 
   const handleSelectAmount = (value: number) => {
     setAmount(value);
@@ -31,23 +47,64 @@ export function RechargePanel() {
   const handleCustomChange = (value: string) => {
     setCustomAmount(value);
     const parsed = Number(value);
-    if (!Number.isNaN(parsed)) {
+    if (!Number.isNaN(parsed) && parsed > 0) {
       setAmount(parsed);
+    } else {
+      setAmount(0);
     }
   };
 
   const handleSubmit = async () => {
-    if (!amount || amount < 10) {
-      toast.error('自定义金额最低 10 元');
+    // 判断使用预设金额还是自定义金额
+    const finalAmount =
+      customAmount && customAmount.trim()
+        ? Number(customAmount.trim())
+        : amount;
+
+    // 验证金额
+    if (!finalAmount || finalAmount < 10) {
+      toast.error('充值金额最低 10 元');
       return;
     }
+
+    // 验证金额格式（最多两位小数）
+    // 将金额转换为字符串，检查小数位数
+    const amountStr = finalAmount.toString();
+    const decimalIndex = amountStr.indexOf('.');
+    if (decimalIndex !== -1) {
+      const decimalPart = amountStr.substring(decimalIndex + 1);
+      if (decimalPart.length > 2) {
+        toast.error('充值金额最多支持两位小数');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      // 这里只做原型演示，实际接 Stripe 支付时在此发起创建订单/支付意向请求
-      toast.success(`暂未接入真实支付，将模拟充值 ¥${amount.toFixed(2)}`);
+      // 调用接口创建订单
+      const response = await fetch('/api/recharge/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount: finalAmount })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || '创建订单失败');
+      }
+
+      // 跳转到 Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('未获取到支付链接');
+      }
     } catch (error: any) {
+      console.error('[RECHARGE_SUBMIT_ERROR]', error);
       toast.error(error?.message || '充值失败，请稍后重试');
-    } finally {
       setSubmitting(false);
     }
   };

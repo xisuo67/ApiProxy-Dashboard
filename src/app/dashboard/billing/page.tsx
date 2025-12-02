@@ -7,6 +7,7 @@ import { RechargePanel } from '@/features/billing/components/recharge-panel';
 import { ServiceProviderSelector } from '@/features/user-pricing/components/service-provider-selector';
 import RequestLogViewPage from '@/features/api-request-log/components/request-log-view-page';
 import MiniProgramViewPage from '@/features/mini-program/components/mini-program-view-page';
+import RechargeOrderViewPage from '@/features/billing/components/recharge-order-view-page';
 import { searchParamsCache } from '@/lib/searchparams';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -105,9 +106,17 @@ export default async function Page(props: PageProps) {
               </Suspense>
             </TabsContent>
             <TabsContent value='history'>
-              <div className='text-muted-foreground text-sm'>
-                订单 / 账单历史暂未实现，后续可在此展示调用账单记录。
-              </div>
+              <Suspense
+                fallback={
+                  <DataTableSkeleton
+                    columnCount={6}
+                    rowCount={8}
+                    filterCount={2}
+                  />
+                }
+              >
+                <RechargeOrderViewPage />
+              </Suspense>
             </TabsContent>
           </div>
         </Tabs>

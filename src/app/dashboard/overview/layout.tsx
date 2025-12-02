@@ -256,9 +256,7 @@ async function getDailyApiCallsData(userId: string) {
 }
 
 export default async function OverViewLayout({
-  sales,
   pie_stats,
-  bar_stats,
   area_stats
 }: {
   sales: React.ReactNode;

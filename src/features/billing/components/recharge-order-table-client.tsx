@@ -55,7 +55,7 @@ export function RechargeOrderTableClient({
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   // 获取当月日期范围（如果没有传入初始日期）
-  const getDefaultDateRange = useCallback((): DateRange => {
+  const getDefaultDateRange = useCallback((): DateRange | undefined => {
     if (initialStartDate && initialEndDate) {
       return {
         from: new Date(initialStartDate),
@@ -72,7 +72,7 @@ export function RechargeOrderTableClient({
     };
   }, [initialStartDate, initialEndDate]);
 
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     return getDefaultDateRange();
   });
 

@@ -3,7 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 // 获取当日接口调用数据，按服务商分组
-async function getDailyApiCallsByProvider() {
+async function getDailyApiCallsByProvider(): Promise<
+  Array<{ provider: string; count: number }>
+> {
   try {
     const { userId } = await auth();
     if (!userId) {

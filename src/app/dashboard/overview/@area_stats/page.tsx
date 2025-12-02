@@ -3,11 +3,14 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 // 获取当月接口调用数据，按日期和服务商分组
-async function getMonthlyApiCallsByDay() {
+async function getMonthlyApiCallsByDay(): Promise<{
+  data: Array<Record<string, any>>;
+  providers: string[];
+}> {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return [];
+      return { data: [], providers: [] };
     }
 
     const now = new Date();

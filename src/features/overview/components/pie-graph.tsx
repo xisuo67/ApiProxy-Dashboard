@@ -19,14 +19,8 @@ import {
   ChartTooltipContent
 } from '@/components/ui/chart';
 
-// 生成颜色数组
-const colors = [
-  'hsl(var(--primary))',
-  'hsl(var(--primary) / 0.8)',
-  'hsl(var(--primary) / 0.6)',
-  'hsl(var(--primary) / 0.4)',
-  'hsl(var(--primary) / 0.2)'
-];
+// 使用主题主色（primary）作为图表颜色，随主题变更自动更新
+const primaryColor = 'var(--primary)';
 
 interface PieGraphProps {
   data?: Array<{ provider: string; count: number }>;
@@ -35,10 +29,10 @@ interface PieGraphProps {
 export function PieGraph({ data = [] }: PieGraphProps) {
   // 转换为图表数据格式
   const chartData = React.useMemo(() => {
-    return data.map((item, index) => ({
+    return data.map((item) => ({
       provider: item.provider,
       count: item.count,
-      fill: colors[index % colors.length]
+      fill: primaryColor
     }));
   }, [data]);
 
@@ -53,7 +47,8 @@ export function PieGraph({ data = [] }: PieGraphProps) {
     data.forEach((item) => {
       config[item.provider] = {
         label: item.provider,
-        color: 'var(--primary)'
+        // 使用主题主色，保持 Tooltip/Legend 颜色与图表一致
+        color: primaryColor
       };
     });
 
@@ -104,10 +99,13 @@ export function PieGraph({ data = [] }: PieGraphProps) {
           <PieChart>
             <defs>
               {chartData.map((item, index) => {
-                const safeKey = item.provider.replace(/[^a-zA-Z0-9]/g, '_');
+                const safeKey =
+                  item.provider.replace(/[^a-zA-Z0-9]/g, '_') ||
+                  `provider_${index}`;
+                const uniqueKey = `${safeKey}_${index}`;
                 return (
                   <linearGradient
-                    key={safeKey}
+                    key={uniqueKey}
                     id={`fill${safeKey}`}
                     x1='0'
                     y1='0'
@@ -116,13 +114,13 @@ export function PieGraph({ data = [] }: PieGraphProps) {
                   >
                     <stop
                       offset='0%'
-                      stopColor={item.fill}
-                      stopOpacity={1 - index * 0.15}
+                      stopColor={primaryColor}
+                      stopOpacity={0.9}
                     />
                     <stop
                       offset='100%'
-                      stopColor={item.fill}
-                      stopOpacity={0.8 - index * 0.15}
+                      stopColor={primaryColor}
+                      stopOpacity={0.2}
                     />
                   </linearGradient>
                 );

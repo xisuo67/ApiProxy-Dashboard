@@ -31,10 +31,12 @@ async function getDailyApiCallsByProvider(): Promise<
       }
     });
 
-    // 按服务商分组统计
+    // 按服务商分组统计（对服务商名称做规范化，避免因为多余空格导致重复）
     const providerMap = new Map<string, number>();
     logs.forEach((log) => {
-      const provider = log.serviceProvider || '未知';
+      const rawProvider = log.serviceProvider ?? '';
+      const normalizedProvider = rawProvider.trim();
+      const provider = normalizedProvider || '未知';
       providerMap.set(provider, (providerMap.get(provider) || 0) + 1);
     });
 

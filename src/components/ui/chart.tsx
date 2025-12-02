@@ -185,9 +185,12 @@ function ChartTooltipContent({
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const indicatorColor = color || item.payload.fill || item.color;
 
+          // 使用 dataKey + index 组合，确保 key 唯一，避免多个系列出现相同 key 报错
+          const uniqueKey = `${item.dataKey ?? 'value'}-${index}`;
+
           return (
             <div
-              key={item.dataKey}
+              key={uniqueKey}
               className={cn(
                 '[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5',
                 indicator === 'dot' && 'items-center'

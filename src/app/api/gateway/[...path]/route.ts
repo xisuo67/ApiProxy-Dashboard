@@ -197,15 +197,41 @@ async function handleProxyRequest(
     }
 
     // 构建完整的目标 URL：actualHost + actualApi
-    const targetUrl = `${actualHost.replace(/\/$/, '')}${actualApi.startsWith('/') ? actualApi : '/' + actualApi}`;
+    let targetUrl = `${actualHost.replace(/\/$/, '')}${actualApi.startsWith('/') ? actualApi : '/' + actualApi}`;
 
-    // 5. 获取请求体（用于日志记录）
-    const requestBody = await req
+    // 将原始请求的查询参数附加到目标 URL
+    const searchParams = req.nextUrl.searchParams;
+    if (searchParams.toString()) {
+      const separator = targetUrl.includes('?') ? '&' : '?';
+      targetUrl = `${targetUrl}${separator}${searchParams.toString()}`;
+    }
+
+    // 5. 获取请求体和查询参数（用于日志记录）
+    const requestMethod = req.method;
+
+    // 获取用户请求的 APISIX 接口地址（用于日志记录）
+    // 格式：GET /api/getArticle 或 POST /api/sendMessage
+    const userRequestPath = req.nextUrl.pathname; // 例如：/api/gateway/getArticle
+    // 移除 /api/gateway 前缀，得到用户实际请求的接口路径
+    const apiPath = userRequestPath.replace(/^\/api\/gateway/, '') || '/';
+    const requestApi = `${requestMethod} ${apiPath}`;
+
+    // 获取请求体
+    let requestBody = await req
       .clone()
       .text()
       .catch(() => '');
-    const requestMethod = req.method;
-    const requestApi = `${requestMethod} ${actualApi}`;
+
+    // GET 请求：只记录查询参数（格式化为 JSON）
+    if (requestMethod === 'GET' && searchParams.toString()) {
+      const queryParams: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        queryParams[key] = value;
+      });
+      requestBody = JSON.stringify(queryParams);
+    }
+    // POST/PUT/PATCH 等请求：直接使用原始 body（不包装）
+    // requestBody 已经是原始内容，不需要修改
 
     // 6. 转发请求到目标接口（先调用外部 API，减少锁持有时间）
     const response = await proxyRequest(

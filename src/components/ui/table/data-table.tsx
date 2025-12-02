@@ -33,7 +33,7 @@ export function DataTable<TData>({
       {children}
       <div
         className={cn(
-          'relative flex min-h-[200px] flex-1',
+          'relative flex min-h-[500px] flex-1',
           tableContainerClassName
         )}
       >

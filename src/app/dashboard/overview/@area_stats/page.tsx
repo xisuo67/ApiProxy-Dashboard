@@ -49,7 +49,10 @@ async function getMonthlyApiCallsByDay(): Promise<{
       const date = new Date(log.createdAt);
       // 使用 YYYY-MM-DD 格式作为 key，确保唯一性
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const provider = log.serviceProvider || '未知';
+      // 规范化服务商名称：去掉首尾空格，避免同一服务商因为多余空格被统计为多个
+      const rawProvider = log.serviceProvider ?? '';
+      const normalizedProvider = rawProvider.trim();
+      const provider = normalizedProvider || '未知';
 
       if (!dataMap.has(dateKey)) {
         dataMap.set(dateKey, new Map());
@@ -79,9 +82,8 @@ async function getMonthlyApiCallsByDay(): Promise<{
 
       allProviders.forEach((provider) => {
         const count = dataMap.get(dateKey)?.get(provider) || 0;
-        // 使用服务商名称作为 key，但需要处理特殊字符
-        const safeKey = provider.replace(/[^a-zA-Z0-9]/g, '_');
-        dayData[safeKey] = count;
+        // 直接使用服务商名称作为 key，确保与前端图表 dataKey 一致
+        dayData[provider] = count;
       });
 
       result.push(dayData);

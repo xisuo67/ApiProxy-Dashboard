@@ -19,14 +19,8 @@ import {
   ChartTooltipContent
 } from '@/components/ui/chart';
 
-// 生成颜色数组
-const colors = [
-  'hsl(var(--primary))',
-  'hsl(var(--primary) / 0.8)',
-  'hsl(var(--primary) / 0.6)',
-  'hsl(var(--primary) / 0.4)',
-  'hsl(var(--primary) / 0.2)'
-];
+// 使用主题主色（primary）作为图表颜色，随主题变更自动更新
+const primaryColor = 'var(--primary)';
 
 interface AreaGraphProps {
   data?: Array<Record<string, any>>;
@@ -42,11 +36,11 @@ export function AreaGraph({ data = [], providers = [] }: AreaGraphProps) {
       }
     };
 
-    providers.forEach((provider, index) => {
-      const safeKey = provider.replace(/[^a-zA-Z0-9]/g, '_');
-      config[safeKey] = {
+    providers.forEach((provider) => {
+      // 使用服务商原始名称作为配置键，颜色统一使用主题主色
+      config[provider] = {
         label: provider,
-        color: colors[index % colors.length]
+        color: primaryColor
       };
     });
 
@@ -59,8 +53,7 @@ export function AreaGraph({ data = [], providers = [] }: AreaGraphProps) {
       return (
         sum +
         providers.reduce((daySum, provider) => {
-          const safeKey = provider.replace(/[^a-zA-Z0-9]/g, '_');
-          return daySum + (day[safeKey] || 0);
+          return daySum + (day[provider] || 0);
         }, 0)
       );
     }, 0);
@@ -107,12 +100,15 @@ export function AreaGraph({ data = [], providers = [] }: AreaGraphProps) {
           >
             <defs>
               {providers.map((provider, index) => {
-                const safeKey = provider.replace(/[^a-zA-Z0-9]/g, '_');
-                const color = colors[index % colors.length];
+                // 用于 <linearGradient> 的安全 id（仅用于 DOM id，不影响数据 key）
+                const safeId =
+                  provider.replace(/[^a-zA-Z0-9]/g, '_') || `provider_${index}`;
+                // 使用 index 确保 key 唯一性
+                const uniqueKey = `${safeId}_${index}`;
                 return (
                   <linearGradient
-                    key={safeKey}
-                    id={`fill${safeKey}`}
+                    key={uniqueKey}
+                    id={`fill${safeId}`}
                     x1='0'
                     y1='0'
                     x2='0'
@@ -120,10 +116,14 @@ export function AreaGraph({ data = [], providers = [] }: AreaGraphProps) {
                   >
                     <stop
                       offset='5%'
-                      stopColor={color}
-                      stopOpacity={1.0 - index * 0.15}
+                      stopColor={primaryColor}
+                      stopOpacity={0.9}
                     />
-                    <stop offset='95%' stopColor={color} stopOpacity={0.1} />
+                    <stop
+                      offset='95%'
+                      stopColor={primaryColor}
+                      stopOpacity={0.15}
+                    />
                   </linearGradient>
                 );
               })}
@@ -142,15 +142,17 @@ export function AreaGraph({ data = [], providers = [] }: AreaGraphProps) {
               content={<ChartTooltipContent indicator='dot' />}
             />
             {providers.map((provider, index) => {
-              const safeKey = provider.replace(/[^a-zA-Z0-9]/g, '_');
-              const color = colors[index % colors.length];
+              const safeId =
+                provider.replace(/[^a-zA-Z0-9]/g, '_') || `provider_${index}`;
+              // 使用 index 确保 key 唯一性
+              const uniqueKey = `${safeId}_${index}`;
               return (
                 <Area
-                  key={safeKey}
-                  dataKey={safeKey}
+                  key={uniqueKey}
+                  dataKey={provider}
                   type='natural'
-                  fill={`url(#fill${safeKey})`}
-                  stroke={color}
+                  fill={`url(#fill${safeId})`}
+                  stroke={primaryColor}
                   stackId='a'
                 />
               );

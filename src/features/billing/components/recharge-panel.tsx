@@ -18,12 +18,53 @@ import { IconBrandStripe } from '@tabler/icons-react';
 
 const PRESET_AMOUNTS = [10, 50, 100];
 
+interface BillingStatistics {
+  currentBalance: number;
+  monthlyRechargeTotal: number;
+  totalRecharge: number;
+}
+
 export function RechargePanel() {
   const searchParams = useSearchParams();
   const [payMethod, setPayMethod] = useState<'stripe'>('stripe');
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [statistics, setStatistics] = useState<BillingStatistics>({
+    currentBalance: 0,
+    monthlyRechargeTotal: 0,
+    totalRecharge: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // 获取统计数据
+  const fetchStatistics = async () => {
+    try {
+      setLoadingStats(true);
+      const response = await fetch('/api/billing/statistics');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || '获取统计数据失败');
+      }
+
+      setStatistics({
+        currentBalance: data.currentBalance || 0,
+        monthlyRechargeTotal: data.monthlyRechargeTotal || 0,
+        totalRecharge: data.totalRecharge || 0
+      });
+    } catch (error: any) {
+      console.error('[FETCH_STATISTICS_ERROR]', error);
+      // 静默失败，不显示错误提示
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  // 初始加载统计数据
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
 
   // 处理支付成功/取消回调
   useEffect(() => {
@@ -33,7 +74,8 @@ export function RechargePanel() {
 
     if (success === 'true' && orderId) {
       toast.success('充值成功！余额已更新');
-      // 可以在这里刷新余额数据
+      // 刷新统计数据
+      fetchStatistics();
     } else if (canceled === 'true') {
       toast.info('支付已取消');
     }
@@ -111,7 +153,7 @@ export function RechargePanel() {
 
   return (
     <div className='space-y-6 pb-8'>
-      {/* 顶部统计卡片（原型展示，数据可后续接入） */}
+      {/* 顶部统计卡片 */}
       <div className='grid gap-4 md:grid-cols-3'>
         <Card>
           <CardHeader>
@@ -119,7 +161,13 @@ export function RechargePanel() {
             <CardDescription>可用余额</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-semibold'>¥0.00</div>
+            {loadingStats ? (
+              <div className='h-8 w-24 animate-pulse rounded bg-gray-200' />
+            ) : (
+              <div className='text-2xl font-semibold'>
+                ¥{statistics.currentBalance.toFixed(2)}
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -128,16 +176,28 @@ export function RechargePanel() {
             <CardDescription>当月成功充值金额</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-semibold'>¥0.00</div>
+            {loadingStats ? (
+              <div className='h-8 w-24 animate-pulse rounded bg-gray-200' />
+            ) : (
+              <div className='text-2xl font-semibold'>
+                ¥{statistics.monthlyRechargeTotal.toFixed(2)}
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>累计消费</CardTitle>
-            <CardDescription>所有订单总费用</CardDescription>
+            <CardTitle>累计充值</CardTitle>
+            <CardDescription>所有支付成功的订单总额</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-semibold'>¥0.00</div>
+            {loadingStats ? (
+              <div className='h-8 w-24 animate-pulse rounded bg-gray-200' />
+            ) : (
+              <div className='text-2xl font-semibold'>
+                ¥{statistics.totalRecharge.toFixed(2)}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

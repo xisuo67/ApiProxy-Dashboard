@@ -54,14 +54,26 @@ export function RechargeOrderTableClient({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+  // 获取当月日期范围（如果没有传入初始日期）
+  const getDefaultDateRange = useCallback((): DateRange => {
     if (initialStartDate && initialEndDate) {
       return {
         from: new Date(initialStartDate),
         to: new Date(initialEndDate)
       };
     }
-    return undefined;
+    // 默认使用当月
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    return {
+      from: new Date(year, month, 1),
+      to: new Date(year, month + 1, 0, 23, 59, 59, 999)
+    };
+  }, [initialStartDate, initialEndDate]);
+
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    return getDefaultDateRange();
   });
 
   const [page, setPage] = useQueryState(
@@ -76,13 +88,30 @@ export function RechargeOrderTableClient({
     'status',
     parseAsString.withDefault(initialStatus || 'all')
   );
+  // 计算默认日期（当月）
+  const defaultStartDate = useMemo(() => {
+    if (initialStartDate) return initialStartDate;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    return format(new Date(year, month, 1), 'yyyy-MM-dd');
+  }, [initialStartDate]);
+
+  const defaultEndDate = useMemo(() => {
+    if (initialEndDate) return initialEndDate;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    return format(new Date(year, month + 1, 0, 23, 59, 59, 999), 'yyyy-MM-dd');
+  }, [initialEndDate]);
+
   const [startDate, setStartDate] = useQueryState(
     'startDate',
-    parseAsString.withDefault(initialStartDate || '')
+    parseAsString.withDefault(defaultStartDate)
   );
   const [endDate, setEndDate] = useQueryState(
     'endDate',
-    parseAsString.withDefault(initialEndDate || '')
+    parseAsString.withDefault(defaultEndDate)
   );
 
   const pageCount = Math.max(1, Math.ceil(total / perPage || 1));
@@ -184,9 +213,6 @@ export function RechargeOrderTableClient({
     if (dateRange?.from && dateRange?.to) {
       setStartDate(format(dateRange.from, 'yyyy-MM-dd'));
       setEndDate(format(dateRange.to, 'yyyy-MM-dd'));
-    } else if (!dateRange?.from && !dateRange?.to) {
-      setStartDate('');
-      setEndDate('');
     }
   }, [dateRange, setStartDate, setEndDate]);
 

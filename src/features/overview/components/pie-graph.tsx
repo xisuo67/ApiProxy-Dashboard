@@ -19,54 +19,81 @@ import {
   ChartTooltipContent
 } from '@/components/ui/chart';
 
-const chartData = [
-  { browser: 'chrome', visitors: 275, fill: 'var(--primary)' },
-  { browser: 'safari', visitors: 200, fill: 'var(--primary-light)' },
-  { browser: 'firefox', visitors: 287, fill: 'var(--primary-lighter)' },
-  { browser: 'edge', visitors: 173, fill: 'var(--primary-dark)' },
-  { browser: 'other', visitors: 190, fill: 'var(--primary-darker)' }
+// 生成颜色数组
+const colors = [
+  'hsl(var(--primary))',
+  'hsl(var(--primary) / 0.8)',
+  'hsl(var(--primary) / 0.6)',
+  'hsl(var(--primary) / 0.4)',
+  'hsl(var(--primary) / 0.2)'
 ];
 
-const chartConfig = {
-  visitors: {
-    label: 'Visitors'
-  },
-  chrome: {
-    label: 'Chrome',
-    color: 'var(--primary)'
-  },
-  safari: {
-    label: 'Safari',
-    color: 'var(--primary)'
-  },
-  firefox: {
-    label: 'Firefox',
-    color: 'var(--primary)'
-  },
-  edge: {
-    label: 'Edge',
-    color: 'var(--primary)'
-  },
-  other: {
-    label: 'Other',
-    color: 'var(--primary)'
-  }
-} satisfies ChartConfig;
+interface PieGraphProps {
+  data?: Array<{ provider: string; count: number }>;
+}
 
-export function PieGraph() {
-  const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0);
-  }, []);
+export function PieGraph({ data = [] }: PieGraphProps) {
+  // 转换为图表数据格式
+  const chartData = React.useMemo(() => {
+    return data.map((item, index) => ({
+      provider: item.provider,
+      count: item.count,
+      fill: colors[index % colors.length]
+    }));
+  }, [data]);
+
+  // 动态生成 chartConfig
+  const chartConfig = React.useMemo(() => {
+    const config: ChartConfig = {
+      count: {
+        label: '调用次数'
+      }
+    };
+
+    data.forEach((item) => {
+      config[item.provider] = {
+        label: item.provider,
+        color: 'var(--primary)'
+      };
+    });
+
+    return config;
+  }, [data]);
+
+  const totalCalls = React.useMemo(() => {
+    return chartData.reduce((acc, curr) => acc + curr.count, 0);
+  }, [chartData]);
+
+  if (chartData.length === 0) {
+    return (
+      <Card className='@container/card'>
+        <CardHeader>
+          <CardTitle>今日接口调用次数</CardTitle>
+          <CardDescription>
+            <span className='hidden @[540px]/card:block'>
+              今日接口调用次数（按服务商分组）
+            </span>
+            <span className='@[540px]/card:hidden'>调用次数</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='px-2 pt-4 sm:px-6 sm:pt-6'>
+          <div className='text-muted-foreground flex h-[250px] items-center justify-center'>
+            暂无数据
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className='@container/card'>
       <CardHeader>
-        <CardTitle>Pie Chart - Donut with Text</CardTitle>
+        <CardTitle>今日接口调用次数</CardTitle>
         <CardDescription>
           <span className='hidden @[540px]/card:block'>
-            Total visitors by browser for the last 6 months
+            今日接口调用次数（按服务商分组）
           </span>
-          <span className='@[540px]/card:hidden'>Browser distribution</span>
+          <span className='@[540px]/card:hidden'>调用次数</span>
         </CardDescription>
       </CardHeader>
       <CardContent className='px-2 pt-4 sm:px-6 sm:pt-6'>
@@ -76,11 +103,12 @@ export function PieGraph() {
         >
           <PieChart>
             <defs>
-              {['chrome', 'safari', 'firefox', 'edge', 'other'].map(
-                (browser, index) => (
+              {chartData.map((item, index) => {
+                const safeKey = item.provider.replace(/[^a-zA-Z0-9]/g, '_');
+                return (
                   <linearGradient
-                    key={browser}
-                    id={`fill${browser}`}
+                    key={safeKey}
+                    id={`fill${safeKey}`}
                     x1='0'
                     y1='0'
                     x2='0'
@@ -88,29 +116,32 @@ export function PieGraph() {
                   >
                     <stop
                       offset='0%'
-                      stopColor='var(--primary)'
+                      stopColor={item.fill}
                       stopOpacity={1 - index * 0.15}
                     />
                     <stop
                       offset='100%'
-                      stopColor='var(--primary)'
+                      stopColor={item.fill}
                       stopOpacity={0.8 - index * 0.15}
                     />
                   </linearGradient>
-                )
-              )}
+                );
+              })}
             </defs>
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
             <Pie
-              data={chartData.map((item) => ({
-                ...item,
-                fill: `url(#fill${item.browser})`
-              }))}
-              dataKey='visitors'
-              nameKey='browser'
+              data={chartData.map((item) => {
+                const safeKey = item.provider.replace(/[^a-zA-Z0-9]/g, '_');
+                return {
+                  ...item,
+                  fill: `url(#fill${safeKey})`
+                };
+              })}
+              dataKey='count'
+              nameKey='provider'
               innerRadius={60}
               strokeWidth={2}
               stroke='var(--background)'
@@ -130,14 +161,14 @@ export function PieGraph() {
                           y={viewBox.cy}
                           className='fill-foreground text-3xl font-bold'
                         >
-                          {totalVisitors.toLocaleString()}
+                          {totalCalls.toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className='fill-muted-foreground text-sm'
                         >
-                          Total Visitors
+                          总调用次数
                         </tspan>
                       </text>
                     );
@@ -149,13 +180,14 @@ export function PieGraph() {
         </ChartContainer>
       </CardContent>
       <CardFooter className='flex-col gap-2 text-sm'>
-        <div className='flex items-center gap-2 leading-none font-medium'>
-          Chrome leads with{' '}
-          {((chartData[0].visitors / totalVisitors) * 100).toFixed(1)}%{' '}
-          <IconTrendingUp className='h-4 w-4' />
-        </div>
+        {chartData.length > 0 && (
+          <div className='flex items-center gap-2 leading-none font-medium'>
+            今日总调用：{totalCalls.toLocaleString()} 次{' '}
+            <IconTrendingUp className='h-4 w-4' />
+          </div>
+        )}
         <div className='text-muted-foreground leading-none'>
-          Based on data from January - June 2024
+          按服务商分组统计
         </div>
       </CardFooter>
     </Card>

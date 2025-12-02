@@ -6,32 +6,73 @@ import type { RechargeOrderItem } from '@/lib/recharge-order';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Eye, CreditCard, Trash2 } from 'lucide-react';
 
 // 操作按钮组件
-function OrderActions({ orderId }: { orderId: string }) {
-  const router = useRouter();
+function OrderActions({
+  orderId,
+  status,
+  checkoutUrl,
+  onDelete
+}: {
+  orderId: string;
+  status: string;
+  checkoutUrl: string | null;
+  onDelete?: (orderId: string) => void;
+}) {
+  const handleViewDetails = () => {
+    // 在新标签页中打开订单详情
+    window.open(`/paycallback?orderId=${orderId}`, '_blank');
+  };
+
+  const handleContinuePayment = () => {
+    // 在新标签页中打开支付页面
+    if (checkoutUrl) {
+      window.open(checkoutUrl, '_blank');
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(orderId);
+    }
+  };
+
   return (
-    <Button
-      variant='ghost'
-      size='sm'
-      onClick={() => {
-        router.push(`/paycallback?orderId=${orderId}`);
-      }}
-    >
-      <Eye className='mr-2 h-4 w-4' />
-      查看详情
-    </Button>
+    <div className='flex items-center gap-2'>
+      {status === 'pending' && checkoutUrl && (
+        <Button variant='default' size='sm' onClick={handleContinuePayment}>
+          <CreditCard className='mr-2 h-4 w-4' />
+          继续支付
+        </Button>
+      )}
+      {status === 'pending' && onDelete && (
+        <Button
+          variant='ghost'
+          size='sm'
+          onClick={handleDelete}
+          className='text-destructive hover:text-destructive'
+        >
+          <Trash2 className='mr-2 h-4 w-4' />
+          删除
+        </Button>
+      )}
+      <Button variant='ghost' size='sm' onClick={handleViewDetails}>
+        <Eye className='mr-2 h-4 w-4' />
+        查看详情
+      </Button>
+    </div>
   );
 }
 
 interface BuildRechargeOrderColumnsParams {
   isAdmin?: boolean;
+  onDelete?: (orderId: string) => void;
 }
 
 export function buildRechargeOrderColumns({
-  isAdmin
+  isAdmin,
+  onDelete
 }: BuildRechargeOrderColumnsParams): ColumnDef<RechargeOrderItem>[] {
   const baseColumns: ColumnDef<RechargeOrderItem>[] = [
     {
@@ -139,7 +180,14 @@ export function buildRechargeOrderColumns({
       id: 'actions',
       header: '操作',
       cell: ({ row }) => {
-        return <OrderActions orderId={row.original.id} />;
+        return (
+          <OrderActions
+            orderId={row.original.id}
+            status={row.original.status}
+            checkoutUrl={row.original.checkoutUrl}
+            onDelete={onDelete}
+          />
+        );
       }
     }
   ];

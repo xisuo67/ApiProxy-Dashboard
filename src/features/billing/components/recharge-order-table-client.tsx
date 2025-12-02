@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { DataTablePagination } from '@/components/ui/table/data-table-pagination';
@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { AlertModal } from '@/components/modal/alert-modal';
 
 interface RechargeOrderTableClientProps {
   initialPage: number;
@@ -50,6 +51,9 @@ export function RechargeOrderTableClient({
   const [rows, setRows] = useState<RechargeOrderItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     if (initialStartDate && initialEndDate) {
       return {
@@ -60,7 +64,10 @@ export function RechargeOrderTableClient({
     return undefined;
   });
 
-  const [page] = useQueryState('page', parseAsInteger.withDefault(initialPage));
+  const [page, setPage] = useQueryState(
+    'page',
+    parseAsInteger.withDefault(initialPage)
+  );
   const [perPage] = useQueryState(
     'perPage',
     parseAsInteger.withDefault(initialPerPage)
@@ -80,9 +87,42 @@ export function RechargeOrderTableClient({
 
   const pageCount = Math.max(1, Math.ceil(total / perPage || 1));
 
+  // 删除订单
+  const handleDeleteClick = useCallback((orderId: string) => {
+    setDeletingOrderId(orderId);
+    setDeleteOpen(true);
+  }, []);
+
+  const handleDelete = async () => {
+    if (!deletingOrderId) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/recharge/order/${deletingOrderId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || '删除订单失败');
+      }
+
+      toast.success('删除成功');
+      setDeleteOpen(false);
+      setDeletingOrderId(null);
+      // 刷新订单列表
+      fetchOrders();
+    } catch (error: any) {
+      console.error('[DELETE_ORDER_ERROR]', error);
+      toast.error(error?.message || '删除订单失败');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const columns: ColumnDef<RechargeOrderItem, unknown>[] = useMemo(
-    () => buildRechargeOrderColumns({ isAdmin }),
-    [isAdmin]
+    () => buildRechargeOrderColumns({ isAdmin, onDelete: handleDeleteClick }),
+    [isAdmin, handleDeleteClick]
   );
 
   const { table } = useDataTable<RechargeOrderItem>({
@@ -100,7 +140,7 @@ export function RechargeOrderTableClient({
   });
 
   // 获取订单列表
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -133,11 +173,11 @@ export function RechargeOrderTableClient({
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, perPage, status, startDate, endDate]);
 
   useEffect(() => {
     fetchOrders();
-  }, [page, perPage, status, startDate, endDate]);
+  }, [fetchOrders]);
 
   // 日期范围变化时更新 URL 参数
   useEffect(() => {
@@ -213,11 +253,23 @@ export function RechargeOrderTableClient({
         </div>
       </DataTableToolbar>
 
-      <DataTable
-        table={table}
-        loading={loading}
-        columns={columns}
-        data={rows}
+      <DataTable table={table} />
+
+      {/* 删除确认对话框 */}
+      <AlertModal
+        isOpen={deleteOpen}
+        onClose={() => {
+          if (!deleting) {
+            setDeleteOpen(false);
+            setDeletingOrderId(null);
+          }
+        }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title='确认删除订单？'
+        description='删除后将无法恢复，请确认是否继续操作。'
+        cancelText='取消'
+        confirmText='删除'
       />
     </div>
   );

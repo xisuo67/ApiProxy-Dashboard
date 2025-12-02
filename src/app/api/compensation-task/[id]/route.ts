@@ -25,7 +25,7 @@ async function requireAdmin() {
 // 重置补偿任务为待处理（pending），清空重试次数和错误信息
 export async function PATCH(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId, isAdmin } = await requireAdmin();
@@ -39,7 +39,8 @@ export async function PATCH(
       );
     }
 
-    const id = context.params.id;
+    const params = await context.params;
+    const id = params.id;
     if (!id) {
       return NextResponse.json({ message: '缺少任务 ID' }, { status: 400 });
     }

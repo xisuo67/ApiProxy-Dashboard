@@ -151,6 +151,7 @@ model RechargeOrder {
   // 第三方支付关联信息
   providerOrderId    String?  // 第三方订单号，如 Stripe payment_intent / charge id
   providerSessionId  String?  // 可选：Stripe Checkout Session id
+  checkoutUrl        String?  @db.Text // 支付页面 URL，用于待支付订单重新打开支付页面
   providerRawPayload String?  @db.Text // 可选：记录回调原始数据（JSON 字符串）
 
   // 订单状态

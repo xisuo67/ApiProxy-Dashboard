@@ -183,8 +183,8 @@ export function PayCallbackClient({ orderId }: PayCallbackClientProps) {
 
   return (
     <div className='flex min-h-screen items-center justify-center bg-gray-50 p-4'>
-      <Card className='w-full max-w-2xl'>
-        <CardContent className='p-8'>
+      <Card className='w-full max-w-md'>
+        <CardContent className='p-6'>
           {/* 状态图标和标题 */}
           <div className='flex flex-col items-center space-y-4 pb-6'>
             <div

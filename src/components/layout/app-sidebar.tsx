@@ -64,6 +64,7 @@ export default function AppSidebar() {
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
   const handleSwitchTenant = (_tenantId: string) => {
     // Tenant switching functionality would be implemented here
   };
@@ -73,6 +74,10 @@ export default function AppSidebar() {
   React.useEffect(() => {
     // Side effects based on sidebar state changes
   }, [isOpen]);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [localRole, setLocalRole] = React.useState<string | null>(null);
 
@@ -181,12 +186,14 @@ export default function AppSidebar() {
                   size='lg'
                   className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
                 >
-                  {user && (
+                  {mounted && user ? (
                     <UserAvatarProfile
                       className='h-8 w-8 rounded-lg'
                       showInfo
                       user={user}
                     />
+                  ) : (
+                    <div className='h-8 w-8 rounded-lg' />
                   )}
                   <IconChevronsDown className='ml-auto size-4' />
                 </SidebarMenuButton>
@@ -199,7 +206,7 @@ export default function AppSidebar() {
               >
                 <DropdownMenuLabel className='p-0 font-normal'>
                   <div className='px-1 py-1.5'>
-                    {user && (
+                    {mounted && user && (
                       <UserAvatarProfile
                         className='h-8 w-8 rounded-lg'
                         showInfo

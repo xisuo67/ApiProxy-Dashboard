@@ -142,11 +142,12 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 9. 更新订单的 providerSessionId
-    await prisma.rechargeOrder.update({
+    // 9. 更新订单的 providerSessionId 和支付 URL
+    await (prisma.rechargeOrder.update as any)({
       where: { id: order.id },
       data: {
-        providerSessionId: session.id
+        providerSessionId: session.id,
+        checkoutUrl: session.url || null // 保存支付页面 URL
       }
     });
 

@@ -9,6 +9,7 @@ export interface RechargeOrderItem {
   status: string;
   providerOrderId: string | null;
   providerSessionId: string | null;
+  checkoutUrl: string | null; // 支付页面 URL
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +96,7 @@ export async function listRechargeOrders(
     status: item.status,
     providerOrderId: item.providerOrderId,
     providerSessionId: item.providerSessionId,
+    checkoutUrl: item.checkoutUrl,
     paidAt: item.paidAt?.toISOString() || null,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString()

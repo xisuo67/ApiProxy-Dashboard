@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 import { PayCallbackClient } from './pay-callback-client';
 
 export const metadata = {
@@ -11,12 +9,6 @@ type PageProps = {
 };
 
 export default async function PayCallbackPage(props: PageProps) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect('/auth/sign-in');
-  }
-
   const searchParams = await props.searchParams;
   const orderId = searchParams.orderId;
 

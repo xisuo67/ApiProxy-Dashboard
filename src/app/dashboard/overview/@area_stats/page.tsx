@@ -45,7 +45,7 @@ async function getMonthlyApiCallsByDay(): Promise<{
     // 按日期和服务商分组统计
     const dataMap = new Map<string, Map<string, number>>();
 
-    logs.forEach((log) => {
+    logs.forEach((log: { createdAt: Date; serviceProvider: string | null }) => {
       const date = new Date(log.createdAt);
       // 使用 YYYY-MM-DD 格式作为 key，确保唯一性
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

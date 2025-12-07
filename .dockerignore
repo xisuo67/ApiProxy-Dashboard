@@ -1,0 +1,29 @@
+# 依赖（Docker 中会重新安装）
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+
+# 构建产物（Docker 中会重新构建）
+.next
+out
+dist
+
+# 开发文件
+# .env - 允许复制，Next.js 构建时需要读取 NEXT_PUBLIC_* 变量
+.env*.local
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# 其他
+.DS_Store
+*.md
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+

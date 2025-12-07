@@ -33,7 +33,7 @@ async function getDailyApiCallsByProvider(): Promise<
 
     // 按服务商分组统计（对服务商名称做规范化，避免因为多余空格导致重复）
     const providerMap = new Map<string, number>();
-    logs.forEach((log) => {
+    logs.forEach((log: { serviceProvider: string | null }) => {
       const rawProvider = log.serviceProvider ?? '';
       const normalizedProvider = rawProvider.trim();
       const provider = normalizedProvider || '未知';

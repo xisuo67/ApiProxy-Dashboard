@@ -199,7 +199,7 @@ async function handleCheckoutSessionCompleted(
 
   // 使用事务更新订单状态和用户余额（使用行锁防止并发问题）
   await prisma.$transaction(
-    async (tx) => {
+    async (tx: any) => {
       // 锁定用户行并获取当前余额（防止并发更新）
       const userWithLock = (await (tx as any).$queryRawUnsafe(
         `SELECT id, balance FROM users WHERE id = ? FOR UPDATE`,
@@ -318,7 +318,7 @@ async function handlePaymentIntentSucceeded(
 
   // 使用事务更新订单状态和用户余额（使用行锁防止并发问题）
   await prisma.$transaction(
-    async (tx) => {
+    async (tx: any) => {
       // 锁定用户行并获取当前余额（防止并发更新）
       const userWithLock = (await (tx as any).$queryRawUnsafe(
         `SELECT id, balance FROM users WHERE id = ? FOR UPDATE`,

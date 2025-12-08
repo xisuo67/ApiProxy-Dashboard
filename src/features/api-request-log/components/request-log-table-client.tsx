@@ -215,7 +215,10 @@ export function RequestLogTableClient({
           item.serviceProvider,
           item.requestApi,
           item.requestBody.replace(/"/g, '""'), // 转义CSV中的引号
-          item.responseBody.replace(/"/g, '""'),
+          (item.displayResponseBody || item.responseBody || '').replace(
+            /"/g,
+            '""'
+          ), // 使用过滤后的响应体
           item.cost.toFixed(4),
           new Date(item.createdAt).toLocaleString('zh-CN')
         ];

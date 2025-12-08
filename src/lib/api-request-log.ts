@@ -7,6 +7,7 @@ export interface ApiRequestLogItem {
   requestApi: string;
   requestBody: string;
   responseBody: string;
+  displayResponseBody: string | null; // 虚拟返回参数（用于界面显示，已过滤敏感字段）
   cost: number;
   createdAt: Date;
 }
@@ -73,6 +74,7 @@ export async function listApiRequestLog(params: ListApiRequestLogParams) {
     requestApi: item.requestApi,
     requestBody: item.requestBody || '',
     responseBody: item.responseBody || '',
+    displayResponseBody: item.displayResponseBody || null, // 使用过滤后的响应体（用于界面显示）
     cost: Number(item.cost),
     createdAt: item.createdAt
   }));
@@ -121,6 +123,7 @@ export async function exportApiRequestLog(params: {
     requestApi: item.requestApi,
     requestBody: item.requestBody || '',
     responseBody: item.responseBody || '',
+    displayResponseBody: item.displayResponseBody || null, // 使用过滤后的响应体（用于界面显示）
     cost: Number(item.cost),
     createdAt: item.createdAt
   })) as ApiRequestLogItem[];

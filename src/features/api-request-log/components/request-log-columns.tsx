@@ -48,12 +48,14 @@ export function buildRequestLogColumns({
       }
     },
     {
-      accessorKey: 'responseBody',
+      accessorKey: 'displayResponseBody',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title='返回参数' />
       ),
       cell: ({ row }) => {
-        const body = row.original.responseBody;
+        // 优先使用 displayResponseBody（过滤后的响应），如果没有则使用原始 responseBody
+        const body =
+          row.original.displayResponseBody || row.original.responseBody || '';
         const truncated =
           body.length > 50 ? body.substring(0, 50) + '...' : body;
         return (

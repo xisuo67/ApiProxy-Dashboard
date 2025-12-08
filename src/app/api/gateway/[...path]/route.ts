@@ -30,27 +30,52 @@ function getUserPricingIdFromRequest(req: NextRequest): string | null {
 async function proxyRequest(
   targetUrl: string,
   req: NextRequest,
-  targetApiKey: string | null
+  targetApiKey: string | null,
+  body: string | null, // 直接传递已读取的 body，避免多次读取
+  shouldFilterRemainingCalls: boolean = false // 是否过滤 remaining_calls 字段
 ): Promise<Response> {
-  // 获取请求体
-  let body: string | null = null;
-  try {
-    body = await req.text();
-  } catch (error) {
-    // 如果没有请求体，body 为 null
-  }
-
   // 构建目标请求头（原封不动复制，但替换 X-API-Key）
   const headers: HeadersInit = {};
 
-  // 复制原始请求头（排除一些不需要的）
-  const excludeHeaders = ['host', 'connection', 'content-length'];
+  // 需要排除的请求头列表
+  const excludeHeaders = [
+    'host',
+    'connection',
+    'content-length',
+    // APISIX 相关请求头
+    'x-consumer-username',
+    'x-forwarded-for',
+    'x-forwarded-host',
+    'x-forwarded-port',
+    'x-forwarded-proto',
+    'x-real-ip',
+    // Clerk 相关请求头
+    'x-clerk-auth-message',
+    'x-clerk-auth-reason',
+    'x-clerk-auth-signature',
+    'x-clerk-auth-status',
+    'x-clerk-auth-token',
+    'x-clerk-clerk-url',
+    // Postman 相关请求头
+    'postman-token',
+    // 缓存相关
+    'cache-control'
+  ];
+
+  // 复制原始请求头（排除不需要的）
+  let hasContentType = false;
   req.headers.forEach((value, key) => {
     const lowerKey = key.toLowerCase();
     if (!excludeHeaders.includes(lowerKey)) {
       // 不复制 X-API-Key 和 apikey，后面会用 ApiPricing.apiKey 替换
       if (lowerKey !== 'x-api-key' && lowerKey !== 'apikey') {
-        headers[key] = value;
+        // 统一使用小写的 key，避免重复
+        if (lowerKey === 'content-type') {
+          hasContentType = true;
+          headers['Content-Type'] = value; // 统一使用首字母大写的格式
+        } else {
+          headers[key] = value;
+        }
       }
     }
   });
@@ -60,10 +85,23 @@ async function proxyRequest(
     headers['X-API-Key'] = targetApiKey;
   }
 
-  // 确保 Content-Type 存在（如果有请求体）
-  if (body && !headers['Content-Type']) {
+  // 确保 Content-Type 存在（如果有请求体且没有 Content-Type）
+  if (body && body.length > 0 && !hasContentType) {
     headers['Content-Type'] = 'application/json';
   }
+
+  // 打印转发信息（用于调试）
+  console.log('[PROXY_REQUEST_FORWARD]', {
+    targetUrl,
+    method: req.method,
+    headers: Object.fromEntries(Object.entries(headers)),
+    bodyLength: body?.length || 0,
+    bodyPreview: body
+      ? body.length > 200
+        ? body.substring(0, 200) + '...'
+        : body
+      : null
+  });
 
   // 转发请求
   const response = await fetch(targetUrl, {
@@ -72,17 +110,35 @@ async function proxyRequest(
     body: body || undefined
   });
 
-  // 获取响应内容
+  // 获取响应内容（原始响应体，不过滤，直接返回）
+  // 过滤逻辑在 handleProxyRequest 中处理
   const responseBody = await response.text();
+  const contentType = response.headers.get('Content-Type') || '';
 
-  // 返回响应（保持原始状态码和响应头）
+  // 返回原始响应（不过滤，在 handleProxyRequest 中处理过滤）
   return new NextResponse(responseBody, {
     status: response.status,
     statusText: response.statusText,
     headers: {
-      'Content-Type': response.headers.get('Content-Type') || 'application/json'
+      'Content-Type': contentType || 'application/json'
     }
   });
+}
+
+// 递归移除对象中的 remaining_calls 字段
+function removeRemainingCalls(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => removeRemainingCalls(item));
+  } else if (obj !== null && typeof obj === 'object') {
+    const filtered: any = {};
+    for (const key in obj) {
+      if (key !== 'remaining_calls') {
+        filtered[key] = removeRemainingCalls(obj[key]);
+      }
+    }
+    return filtered;
+  }
+  return obj;
 }
 
 // 注意：logRequest 函数已移除，日志记录现在在事务中直接处理
@@ -134,6 +190,18 @@ async function handleProxyRequest(
 ) {
   try {
     // 1. 获取 UserPricing.id（来自 APISIX key-auth）
+    // 打印所有请求头（用于调试）
+    const headers: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log('[GATEWAY_REQUEST_HEADERS]', {
+      method: req.method,
+      url: req.url,
+      pathname: req.nextUrl.pathname,
+      headers
+    });
+
     const userPricingIdStr = getUserPricingIdFromRequest(req);
     if (!userPricingIdStr) {
       return NextResponse.json({ message: '缺少认证信息' }, { status: 401 });
@@ -234,17 +302,71 @@ async function handleProxyRequest(
     // requestBody 已经是原始内容，不需要修改
 
     // 6. 转发请求到目标接口（先调用外部 API，减少锁持有时间）
+    // 注意：requestBody 已经在上面读取过了，直接传递给 proxyRequest，避免多次读取 req.body
+    // 仅对 /api/Wxapp/JSLogin 接口过滤 remaining_calls 字段
+    const shouldFilterRemainingCalls = apiPath === '/api/Wxapp/JSLogin';
     const response = await proxyRequest(
       targetUrl,
       req,
-      userPricing.apiPricing.apiKey
+      userPricing.apiPricing.apiKey,
+      requestMethod === 'GET' ? null : requestBody, // GET 请求没有 body，POST/PUT/PATCH 等使用已读取的 requestBody
+      shouldFilterRemainingCalls // 是否过滤 remaining_calls
     );
 
     // 7. 获取响应体（用于日志记录和判断是否成功）
+    // 直接从响应体中读取原始响应体（未过滤的，用于日志记录）
+    // 注意：response.clone().text() 返回的字符串不会改变，可以安全地保存到 responseBody
     const responseBody = await response
       .clone()
       .text()
       .catch(() => '');
+    const contentType = response.headers.get('Content-Type') || '';
+
+    // 8. 生成过滤后的响应体（用于界面显示，移除 remaining_calls 等敏感字段）
+    // 仅对 /api/Wxapp/JSLogin 接口过滤 remaining_calls 字段
+    // 基于原始 responseBody 生成 displayResponseBody（过滤后的）
+    let displayResponseBody: string | null = null;
+    if (
+      shouldFilterRemainingCalls &&
+      contentType.includes('application/json') &&
+      responseBody
+    ) {
+      try {
+        const jsonData = JSON.parse(responseBody);
+        if (typeof jsonData === 'object' && jsonData !== null) {
+          // 递归移除所有 remaining_calls 字段
+          const filteredData = removeRemainingCalls(jsonData);
+          displayResponseBody = JSON.stringify(filteredData);
+        }
+      } catch (error) {
+        // 如果不是有效的 JSON，保持原样
+        displayResponseBody = responseBody;
+      }
+    } else {
+      // 不需要过滤，直接使用原始响应体
+      displayResponseBody = responseBody;
+    }
+
+    // 9. 生成返回给客户端的响应体（过滤后的）
+    // 基于原始 responseBody 生成 clientResponseBody（过滤后的）
+    let clientResponseBody = responseBody;
+    if (
+      shouldFilterRemainingCalls &&
+      contentType.includes('application/json') &&
+      responseBody
+    ) {
+      try {
+        const jsonData = JSON.parse(responseBody);
+        if (typeof jsonData === 'object' && jsonData !== null) {
+          // 递归移除所有 remaining_calls 字段
+          const filteredData = removeRemainingCalls(jsonData);
+          clientResponseBody = JSON.stringify(filteredData);
+        }
+      } catch (error) {
+        // 如果不是有效的 JSON，保持原样
+        clientResponseBody = responseBody;
+      }
+    }
 
     // 判断是否成功：响应状态码为 2xx 且有响应体
     const isSuccess = response.ok && responseBody && responseBody.length > 0;
@@ -283,13 +405,17 @@ async function handleProxyRequest(
 
             // 记录请求日志（用于对账）
             try {
+              // responseBody 是从 response.clone().text() 读取的原始响应体（不会改变）
+              // 直接保存到 responseBody 字段（包含 remaining_calls，用于对账）
+              // displayResponseBody 是过滤后的响应体（不包含 remaining_calls，用于界面显示）
               await tx.apiRequestLog.create({
                 data: {
                   userClerkId: userPricing.user.clerkId,
                   serviceProvider: userPricing.apiPricing.name,
                   requestApi,
                   requestBody: requestBody || '',
-                  responseBody: responseBody || '',
+                  responseBody: responseBody || '', // 原始完整响应（包含 remaining_calls）
+                  displayResponseBody: displayResponseBody || null, // 过滤后的响应（用于界面显示）
                   cost
                 }
               });
@@ -327,7 +453,8 @@ async function handleProxyRequest(
           serviceProvider: userPricing.apiPricing.name,
           requestApi,
           requestBody: requestBody || '',
-          responseBody: responseBody || ''
+          responseBody: responseBody || '',
+          displayResponseBody: displayResponseBody || null
         };
 
         if (isDeadlock || isTimeout) {
@@ -405,8 +532,14 @@ async function handleProxyRequest(
       }
     }
 
-    // 10. 返回响应
-    return response;
+    // 10. 返回响应（使用过滤后的响应体）
+    return new NextResponse(clientResponseBody, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        'Content-Type': contentType || 'application/json'
+      }
+    });
   } catch (error: any) {
     console.error('[PROXY_REQUEST_ERROR]', {
       error: error.message,

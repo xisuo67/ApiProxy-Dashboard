@@ -90,19 +90,6 @@ async function proxyRequest(
     headers['Content-Type'] = 'application/json';
   }
 
-  // 打印转发信息（用于调试）
-  console.log('[PROXY_REQUEST_FORWARD]', {
-    targetUrl,
-    method: req.method,
-    headers: Object.fromEntries(Object.entries(headers)),
-    bodyLength: body?.length || 0,
-    bodyPreview: body
-      ? body.length > 200
-        ? body.substring(0, 200) + '...'
-        : body
-      : null
-  });
-
   // 转发请求
   const response = await fetch(targetUrl, {
     method: req.method,
@@ -190,18 +177,6 @@ async function handleProxyRequest(
 ) {
   try {
     // 1. 获取 UserPricing.id（来自 APISIX key-auth）
-    // 打印所有请求头（用于调试）
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    console.log('[GATEWAY_REQUEST_HEADERS]', {
-      method: req.method,
-      url: req.url,
-      pathname: req.nextUrl.pathname,
-      headers
-    });
-
     const userPricingIdStr = getUserPricingIdFromRequest(req);
     if (!userPricingIdStr) {
       return NextResponse.json({ message: '缺少认证信息' }, { status: 401 });

@@ -71,7 +71,7 @@ export function buildRequestLogColumns({
         <DataTableColumnHeader column={column} title='费用' />
       ),
       cell: ({ row }) => (
-        <span className='font-semibold text-emerald-600'>
+        <span className='font-semibold text-red-600'>
           {row.original.cost.toFixed(4)} 元
         </span>
       )

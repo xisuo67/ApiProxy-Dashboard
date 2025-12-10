@@ -44,6 +44,11 @@ docker pull node:20-alpine
 
 # 然后再构建
 docker build -t api-proxy-dashboard:latest .
+
+
+docker save -o api-proxy-dashboard.tar api-proxy-dashboard:latest
+
+docker load -i api-proxy-dashboard.tar
 ```
 
 **方法 4：使用代理**
@@ -86,10 +91,10 @@ NODE_ENV=production
 
 ```bash
 docker run -d \
+  -p 9000:3000 \
   --network caddy_net \
   --name api-proxy-app \
   --restart unless-stopped \
-  --env-file .env \
   --log-opt max-size=10m \
   --log-opt max-file=3 \
   api-proxy-dashboard:latest

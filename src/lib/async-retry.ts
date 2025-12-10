@@ -163,3 +163,74 @@ async function attemptDeductBalanceAndLog(
     };
   }
 }
+
+/**
+ * 异步重试记录失败请求的日志
+ * 使用指数退避策略
+ * 注意：失败请求不扣费，只记录日志
+ */
+export async function retryLogFailedRequest(
+  logData: {
+    userClerkId: string;
+    serviceProvider: string;
+    requestApi: string;
+    requestBody: string;
+    responseBody: string;
+    displayResponseBody: string | null;
+  },
+  maxRetries: number = 3
+): Promise<{ success: boolean; error?: string }> {
+  // 异步执行，不阻塞当前请求
+  setImmediate(async () => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // 计算延迟时间（指数退避：0ms, 1000ms, 2000ms）
+        if (attempt > 0) {
+          const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          await delay(delayMs);
+        }
+
+        // 尝试记录日志
+        await prismaAny.apiRequestLog.create({
+          data: {
+            userClerkId: logData.userClerkId,
+            serviceProvider: logData.serviceProvider,
+            requestApi: logData.requestApi,
+            requestBody: logData.requestBody || '',
+            responseBody: logData.responseBody || '',
+            displayResponseBody: logData.displayResponseBody || null,
+            cost: 0 // 失败时不扣费
+          }
+        });
+
+        console.log('[RETRY_LOG_FAILED_REQUEST_SUCCESS]', {
+          userClerkId: logData.userClerkId,
+          requestApi: logData.requestApi,
+          attempt: attempt + 1
+        });
+        return;
+      } catch (error: any) {
+        const errorMessage = error.message || String(error);
+        console.error('[RETRY_LOG_FAILED_REQUEST_ERROR]', {
+          userClerkId: logData.userClerkId,
+          requestApi: logData.requestApi,
+          attempt: attempt + 1,
+          error: errorMessage
+        });
+
+        // 最后一次尝试失败
+        if (attempt === maxRetries - 1) {
+          console.error('[RETRY_LOG_FAILED_REQUEST_FAILED]', {
+            userClerkId: logData.userClerkId,
+            requestApi: logData.requestApi,
+            attempts: maxRetries,
+            error: errorMessage
+          });
+        }
+      }
+    }
+  });
+
+  // 立即返回，不等待重试结果
+  return { success: true };
+}

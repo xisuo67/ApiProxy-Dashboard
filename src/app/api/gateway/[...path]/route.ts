@@ -10,7 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { retryDeductBalanceAndLog } from '@/lib/async-retry';
+import {
+  retryDeductBalanceAndLog,
+  retryLogFailedRequest
+} from '@/lib/async-retry';
 import { createCompensationTask } from '@/lib/compensation-task';
 
 const prismaAny = prisma as any;
@@ -343,8 +346,84 @@ async function handleProxyRequest(
       }
     }
 
-    // 判断是否成功：响应状态码为 2xx 且有响应体
-    const isSuccess = response.ok && responseBody && responseBody.length > 0;
+    // 判断是否成功：
+    // 1. HTTP 状态码必须是 2xx
+    // 2. 如果有响应体，需要检查业务逻辑是否成功（某些接口可能返回 2xx 但业务失败）
+    let isSuccess = false;
+
+    if (response.ok) {
+      // HTTP 状态码是 2xx，继续检查业务逻辑
+      if (!responseBody || responseBody.length === 0) {
+        // 空响应体：如果状态码是 2xx，认为是成功的（某些接口可能返回空响应）
+        isSuccess = true;
+      } else if (contentType.includes('application/json')) {
+        // JSON 响应：检查业务逻辑是否成功
+        try {
+          const jsonData = JSON.parse(responseBody);
+          // 检查常见的业务错误标识
+          // 优先级：Success/success > Code/code > error/Error/message/Message
+          if (typeof jsonData === 'object' && jsonData !== null) {
+            // 优先检查 Success 字段（常见格式：{"Success": true/false}）
+            if ('Success' in jsonData) {
+              isSuccess =
+                jsonData.Success === true || jsonData.Success === 'true';
+            }
+            // 检查 success 字段（小写）
+            else if ('success' in jsonData) {
+              isSuccess =
+                jsonData.success === true || jsonData.success === 'true';
+            }
+            // 检查 Code 字段（常见格式：{"Code": 0 表示成功，Code: -1 表示失败}）
+            else if ('Code' in jsonData) {
+              isSuccess = jsonData.Code === 0 || jsonData.Code === '0';
+            }
+            // 检查 code 字段（小写）
+            else if ('code' in jsonData) {
+              const code = jsonData.code;
+              isSuccess = code === 0 || code === '0' || code === 'success';
+            }
+            // 检查 error 或 Error 字段（如果存在且不为空，表示失败）
+            else if (
+              'error' in jsonData ||
+              'Error' in jsonData ||
+              'message' in jsonData ||
+              'Message' in jsonData
+            ) {
+              // 如果只有错误字段但没有明确的成功标识，需要进一步判断
+              // 检查是否有明确的错误信息
+              const hasError =
+                (jsonData.error && jsonData.error !== '') ||
+                (jsonData.Error && jsonData.Error !== '') ||
+                (jsonData.message &&
+                  typeof jsonData.message === 'string' &&
+                  jsonData.message.toLowerCase().includes('error')) ||
+                (jsonData.Message &&
+                  typeof jsonData.Message === 'string' &&
+                  jsonData.Message.toLowerCase().includes('error'));
+
+              // 如果没有明确的错误信息，且状态码是 2xx，认为是成功的
+              isSuccess = !hasError;
+            }
+            // 如果没有明确的成功/失败标识，且状态码是 2xx，认为是成功的
+            else {
+              isSuccess = true;
+            }
+          } else {
+            // 非对象类型，如果状态码是 2xx，认为是成功的
+            isSuccess = true;
+          }
+        } catch (error) {
+          // JSON 解析失败，如果状态码是 2xx，认为是成功的（可能是其他格式的响应）
+          isSuccess = true;
+        }
+      } else {
+        // 非 JSON 响应，如果状态码是 2xx，认为是成功的
+        isSuccess = true;
+      }
+    } else {
+      // HTTP 状态码不是 2xx，肯定是失败的
+      isSuccess = false;
+    }
 
     // 8. 扣除余额和记录日志（仅在成功且有响应时）
     // 使用混合方案：先异步重试，失败后创建补偿任务
@@ -504,6 +583,45 @@ async function handleProxyRequest(
           });
         }
         // 扣费/日志失败，但外部 API 已成功，不影响响应
+      }
+    } else {
+      // 9. 请求失败：只记录日志，不扣费（包含重试机制）
+      try {
+        await prismaAny.apiRequestLog.create({
+          data: {
+            userClerkId: userPricing.user.clerkId,
+            serviceProvider: userPricing.apiPricing.name,
+            requestApi,
+            requestBody: requestBody || '',
+            responseBody: responseBody || '',
+            displayResponseBody: displayResponseBody || null,
+            cost: 0 // 失败时不扣费
+          }
+        });
+      } catch (logError) {
+        // 日志记录失败，使用重试机制
+        console.error('[LOG_FAILED_REQUEST_ERROR]', {
+          userId: userPricing.user.id.toString(),
+          error: logError
+        });
+
+        // 异步重试记录日志
+        retryLogFailedRequest(
+          {
+            userClerkId: userPricing.user.clerkId,
+            serviceProvider: userPricing.apiPricing.name,
+            requestApi,
+            requestBody: requestBody || '',
+            responseBody: responseBody || '',
+            displayResponseBody: displayResponseBody || null
+          },
+          3 // 最多重试 3 次
+        ).catch((retryError) => {
+          console.error('[RETRY_LOG_FAILED_REQUEST_FINAL_ERROR]', {
+            userId: userPricing.user.id.toString(),
+            error: retryError
+          });
+        });
       }
     }
 
